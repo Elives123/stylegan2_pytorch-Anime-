@@ -238,7 +238,7 @@ class ImageFolder(torchvision.datasets.ImageFolder):
         return classes, class_to_idx
 
 class LmdbDataset(Dataset):
-    def __init__(self, path, mirror=False, pixel_min=-1, pixel_max=1):
+    def __init__(self, path, mirror=False, pixel_min=-1, pixel_max=1, resolution=512):
         self.env = lmdb.open(
             path,
             max_readers=32,
@@ -271,7 +271,7 @@ class LmdbDataset(Dataset):
 
     def __getitem__(self, index):
         with self.env.begin(write=False) as txn:
-            key = f'{str(index).zfill(8)}'.encode('utf-8')
+            key = f'{self.resolution}-{str(index).zfill(5)}'.encode('utf-8')
             img_bytes = txn.get(key)
 
         buffer = BytesIO(img_bytes)
@@ -279,6 +279,12 @@ class LmdbDataset(Dataset):
         img = self.transform(img)
 
         return img
+
+    # def __iter__(self):
+    #   return self
+
+    # def __next__(self):
+
 
 
 class PriorGenerator:
