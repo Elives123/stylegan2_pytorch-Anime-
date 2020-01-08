@@ -6,6 +6,7 @@ import stylegan2
 from stylegan2 import utils
 from stylegan2.external_models import inception, lpips
 from stylegan2.metrics import fid, ppl
+import wandb
 
 #----------------------------------------------------------------------------
 
@@ -606,6 +607,16 @@ def get_arg_parser():
         type=int
     )
 
+    #----------------------------------------------------------------------------
+    # Wandb options
+
+    parser.add_argument(
+        '--wandb_project',
+        help='Project name on wandb',
+        default=None,
+        type=str
+    )
+
     return parser
 
 #----------------------------------------------------------------------------
@@ -692,7 +703,8 @@ def get_trainer(args):
             world_size=args.world_size,
             master_addr=args.master_addr,
             master_port=args.master_port,
-            tensorboard_log_dir=args.tensorboard_log_dir
+            tensorboard_log_dir=args.tensorboard_log_dir,
+            wandb_project=args.wandb_project
         )
     else:
         G, D = get_models(args)
@@ -726,7 +738,8 @@ def get_trainer(args):
             rank=args.rank,
             world_size=args.world_size,
             master_addr=args.master_addr,
-            master_port=args.master_port
+            master_port=args.master_port,
+            wandb_project=args.wandb_project
         )
     if args.fid_interval and not args.rank:
         fid_model = inception.InceptionV3FeatureExtractor(
@@ -842,6 +855,9 @@ def run_distributed(rank, args):
 def main():
     parser = get_arg_parser()
     args = parser.parse_args()
+    if args.wandb_project is not None:
+        wandb.init(project=args.wandb_project, sync_tensorboard=True)
+        wandb.config.update(args)
     if len(args.gpu) > 1 and args.distributed:
         assert args.rank is None and args.world_size is None, \
             'When --distributed is enabled (default) the rank and ' + \

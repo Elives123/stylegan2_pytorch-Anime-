@@ -9,6 +9,7 @@ import torch
 import torch.utils.tensorboard
 from torch import nn
 import torchvision
+import wandb
 try:
     import apex
     from apex import amp
@@ -194,7 +195,8 @@ class Trainer:
                  rank=None,
                  world_size=None,
                  master_addr='127.0.0.1',
-                 master_port='23456'):
+                 master_port='23456',
+                 wandb_project=None):
         assert not isinstance(G, nn.parallel.DistributedDataParallel) and \
                not isinstance(D, nn.parallel.DistributedDataParallel), \
                'Encountered a model wrapped in `DistributedDataParallel`. ' + \
@@ -366,6 +368,7 @@ class Trainer:
         self.seen = seen
         self.metrics = {}
         self.callbacks = []
+        self.wandb_project = wandb_project
 
     def _get_batch(self):
         """
@@ -752,6 +755,8 @@ class Trainer:
             'No tensorboard log dir was specified ' + \
             'when constructing this object.'
         image = utils.stack_images_PIL(images, individual_img_size=resize)
+        if self.wandb_project is not None:
+            wandb.log({"samples": [wandb.Image(image, caption='fake')]})
         image = torchvision.transforms.ToTensor()(image)
         self.tb_writer.add_image(name, image, self.seen)
 
