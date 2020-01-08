@@ -657,7 +657,8 @@ class Trainer:
                     value_tracker.add('D_loss_grad_norm', D_grad_norm)
                 for name, value in evaluated_metrics.items():
                     value_tracker.add(name, value, beta=0)
-                progress.write(str(value_tracker))
+                # progress.write(str(value_tracker))
+                progress.update(value_tracker.values)
 
             # Callback
             for callback in utils.to_list(callbacks) + self.callbacks:

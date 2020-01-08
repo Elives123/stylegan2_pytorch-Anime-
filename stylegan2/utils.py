@@ -620,6 +620,10 @@ class ProgressWriter:
     def __del__(self):
         self.close()
 
+    def update(self, values):
+        if hasattr(self._progress_bar, 'set_postfix'):
+            self._progress_bar.set_postfix(values)
+
 
 class _StrRepr:
     """
