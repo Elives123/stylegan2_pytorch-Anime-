@@ -554,6 +554,13 @@ def get_arg_parser():
     )
 
     parser.add_argument(
+        '--data_type',
+        help='The data type going to be used',
+        type=str,
+        default='image'
+    )
+
+    parser.add_argument(
         '--mirror_augment',
         help='Use random horizontal flipping for data images. Default: False',
         type=utils.bool_type,
@@ -623,13 +630,22 @@ def get_arg_parser():
 
 def get_dataset(args):
     assert args.data_dir, '--data_dir has to be specified.'
-    dataset = utils.ImageFolder(
-        args.data_dir,
-        mirror=args.mirror_augment,
-        pixel_min=args.pixel_min,
-        pixel_max=args.pixel_max
-    )
-    assert len(dataset), 'No images found at {}'.format(args.data_dir)
+    dataset = None
+    if args.data_type == 'image':
+        dataset = utils.ImageFolder(
+            args.data_dir,
+            mirror=args.mirror_augment,
+            pixel_min=args.pixel_min,
+            pixel_max=args.pixel_max
+        )
+        assert len(dataset), 'No images found at {}'.format(args.data_dir)
+    elif args.data_type == 'lmdb':
+        dataset = utils.LmdbDataset(
+            args.data_dir,
+            mirror=args.mirror_augment,
+            pixel_min=args.pixel_min,
+            pixel_max=args.pixel_max
+        )
     return dataset
 
 #----------------------------------------------------------------------------
