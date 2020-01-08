@@ -383,6 +383,7 @@ class Trainer:
         try:
             batch = next(self.dataloader_iter)
         except StopIteration:
+            print('failed to load batch, retrying')
             self.dataloader_iter = None
             return self._get_batch()
         if isinstance(batch, (tuple, list)):
@@ -565,6 +566,7 @@ class Trainer:
                     latents, latent_labels = self.prior_generator(
                         multi_latent_prob=self.style_mix_prob)
                     reals, real_labels = self._get_batch()
+                    print(reals, real_labels)
                     loss, _ = self.D_loss(
                         G=self.G,
                         D=self.D,

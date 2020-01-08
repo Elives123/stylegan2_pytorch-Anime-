@@ -281,11 +281,6 @@ class LmdbDataset(Dataset):
 
         return img
 
-    # def __iter__(self):
-    #   return self
-
-    # def __next__(self):
-
 
 
 class PriorGenerator:
