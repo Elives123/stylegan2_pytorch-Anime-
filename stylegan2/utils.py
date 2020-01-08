@@ -259,6 +259,7 @@ class LmdbDataset(Dataset):
             )
         )
         self.transform = torchvision.transforms.Compose(transforms)
+        self.resolution = resolution
 
         if not self.env:
             raise IOError('Cannot open lmdb dataset', path)
