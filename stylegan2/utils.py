@@ -10,6 +10,12 @@ import numpy as np
 import torch
 from torch import nn
 import torchvision
+from io import BytesIO
+
+import lmdb
+from PIL import Image
+from torch.utils.data import Dataset
+
 try:
     import tqdm
 except ImportError:
@@ -230,6 +236,49 @@ class ImageFolder(torchvision.datasets.ImageFolder):
             classes = ['']
             class_to_idx = {'': 0}
         return classes, class_to_idx
+
+class LmdbDataset(Dataset):
+    def __init__(self, path, mirror=False, pixel_min=-1, pixel_max=1):
+        self.env = lmdb.open(
+            path,
+            max_readers=32,
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False,
+        )
+
+        transforms = []
+        if mirror:
+            transforms.append(torchvision.transforms.RandomHorizontalFlip())
+        transforms.append(torchvision.transforms.ToTensor())
+        transforms.append(
+            torchvision.transforms.Normalize(
+                mean=[-(pixel_min / (pixel_max - pixel_min))],
+                std=[1. / (pixel_max - pixel_min)]
+            )
+        )
+        self.transform = torchvision.transforms.Compose(transforms)
+
+        if not self.env:
+            raise IOError('Cannot open lmdb dataset', path)
+
+        with self.env.begin(write=False) as txn:
+            self.length = int(txn.get('length'.encode('utf-8')).decode('utf-8'))
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, index):
+        with self.env.begin(write=False) as txn:
+            key = f'{str(index).zfill(8)}'.encode('utf-8')
+            img_bytes = txn.get(key)
+
+        buffer = BytesIO(img_bytes)
+        img = Image.open(buffer)
+        img = self.transform(img)
+
+        return img
 
 
 class PriorGenerator:
@@ -661,3 +710,6 @@ def stack_images_PIL(imgs, shape=None, individual_img_size=None):
                 offset = (w_i * width, h_i * height)
                 canvas.paste(img, offset)
     return canvas
+
+#----------------------------------------------------------------------------
+# wandb utils
