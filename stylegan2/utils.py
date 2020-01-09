@@ -737,6 +737,7 @@ def stack_images_PIL(imgs, shape=None, individual_img_size=None):
 def locate_latest_pt(path):
     api = wandb.Api()
     runs = api.runs(path, order='created_at')
+    print(runs)
     folder = None
 
     # loop for each run to find the lastest model
