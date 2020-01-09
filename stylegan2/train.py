@@ -459,11 +459,13 @@ class Trainer:
         mul /= self.world_size or 1
         if mul != 1:
             loss *= mul
+        loss_start = time.time()
         if self.half:
             with amp.scale_loss(loss, opt) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss.backward()
+        print("--- loss took %s seconds ---\n" % (time.time() - loss_start))
         return loss * (self.world_size or 1)
 
     def train(self, iterations, callbacks=None, verbose=True):
