@@ -977,6 +977,7 @@ _REG_FNS = {
     }
 }
 def get_reg_fn(net, reg, **kwargs):
+    print(reg)
     if reg is None:
         return None
     if callable(reg):
