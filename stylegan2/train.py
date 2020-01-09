@@ -502,9 +502,7 @@ class Trainer:
             # Disable gradients for D while training G
             self.D.requires_grad_(False)
 
-            generator_train_time = time.time()
             for _ in range(self.G_iter):
-                loop_start_time = time.time()
                 self.G_opt.zero_grad()
 
                 G_loss = 0
@@ -519,6 +517,7 @@ class Trainer:
                     )
                     G_loss += self._backward(loss, self.G_opt)
 
+                g_reg_start_time = time.time()
                 if G_reg:
                     if self.G_reg_interval:
                         # For lazy regularization, even if the interval
@@ -531,7 +530,7 @@ class Trainer:
                     # Pathreg is expensive to compute which
                     # is why G regularization has its own settings
                     # for subdivisions and batch size.
-                    for i in range(self.G_reg_subdivisions):
+                    for _ in range(self.G_reg_subdivisions):
                         latents, latent_labels = self.prior_generator(
                             batch_size=self.G_reg_device_batch_size,
                             multi_latent_prob=self.style_mix_prob
@@ -546,16 +545,13 @@ class Trainer:
                             self.G_opt, mul=self.G_reg_interval or 1,
                             subdivisions=self.G_reg_subdivisions
                         )
+                print("--- G reg took %s seconds ---" % (time.time() - g_reg_start_time))
                 self._sync_distributed(G=self.G)
                 self.G_opt.step()
                 # Update moving average of weights after
                 # each G training subiteration
                 if self.Gs is not None:
                     self.Gs.update()
-
-            print("--- training generator took %s seconds ---" % (time.time() - generator_train_time))
-
-            discriminator_train_time = time.time()
 
             # Re-enable gradients for D
             self.D.requires_grad_(True)
@@ -609,8 +605,6 @@ class Trainer:
                             reg_loss, self.D_opt, mul=self.D_reg_interval or 1)
                 self._sync_distributed(D=self.D)
                 self.D_opt.step()
-
-            print("--- training discriminator took %s seconds ---" % (time.time() - discriminator_train_time))
 
             # Re-enable grads for G
             self.G.requires_grad_(True)
@@ -686,8 +680,6 @@ class Trainer:
                         '{}_{}'.format(self.seen, time.strftime('%Y-%m-%d_%H-%M-%S'))
                     )
                     self.save_checkpoint(checkpoint_path)
-
-            print("--- training loop took %s seconds ---" % (time.time() - loop_start_time))
 
         if verbose:
             progress.close()
