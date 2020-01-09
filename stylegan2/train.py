@@ -9,10 +9,9 @@ import torch
 import torch.utils.tensorboard
 from torch import nn
 import torchvision
-import time
 
-import wandb
 try:
+    import wandb
     import apex
     from apex import amp
 except ImportError:
@@ -459,13 +458,11 @@ class Trainer:
         mul /= self.world_size or 1
         if mul != 1:
             loss *= mul
-        backward_start_time = time.time()
         if self.half:
             with amp.scale_loss(loss, opt) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss.backward()
-        print("--- backward_start_time took %s seconds ---\n" % (time.time() - backward_start_time))
         return loss * (self.world_size or 1)
 
     def train(self, iterations, callbacks=None, verbose=True):
@@ -541,14 +538,11 @@ class Trainer:
                             latents=latents,
                             latent_labels=latent_labels
                         )
-                        g_reg_start_time = time.time()
-                        print('-- G reg started --\n')
                         G_reg_loss += self._backward(
                             reg_loss,
                             self.G_opt, mul=self.G_reg_interval or 1,
                             subdivisions=self.G_reg_subdivisions
                         )
-                        print("--- G reg took %s seconds ---\n" % (time.time() - g_reg_start_time))
                 self._sync_distributed(G=self.G)
                 self.G_opt.step()
                 # Update moving average of weights after

@@ -1,12 +1,17 @@
 import warnings
 import os
+import sys
 import torch
 from torch import multiprocessing as mp
 import stylegan2
 from stylegan2 import utils
 from stylegan2.external_models import inception, lpips
 from stylegan2.metrics import fid, ppl
-import wandb
+
+try:
+    import wandb
+except ImportError:
+    pass
 
 #----------------------------------------------------------------------------
 
@@ -872,6 +877,7 @@ def main():
     parser = get_arg_parser()
     args = parser.parse_args()
     if args.wandb_project is not None:
+        assert 'wandb' in sys.modules, 'Wandb not installed '
         wandb.init(project=args.wandb_project, sync_tensorboard=True)
         wandb.config.update(args)
     if len(args.gpu) > 1 and args.distributed:

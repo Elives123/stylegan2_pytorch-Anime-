@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from torch.nn import functional as F
-import time
 
 from . import utils
 
@@ -208,7 +207,6 @@ def G_pathreg(G,
     reg = None
     if gamma:
         fakes, dlatents = G(latents, labels=latent_labels, return_dlatents=True, mapping_grad=False)
-        path_reg_start = time.time()
         reg = _pathreg(
             dlatents=dlatents,
             fakes=fakes,
@@ -217,7 +215,6 @@ def G_pathreg(G,
             gamma=gamma,
             retain_graph=False
         ).float()
-        print("--- _pathreg took %s seconds ---\n" % (time.time() - path_reg_start))
     return loss, reg
 
 
