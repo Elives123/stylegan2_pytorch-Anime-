@@ -760,6 +760,7 @@ def restore_files(run_path, folder):
     names = ['G.pth', 'G_opt.pth', 'D.pth',
              'D_opt.pth', 'Gs.pth', 'kwargs.json']
     result = {}
+    print(run_path, folder)
     for file_name in names:
         print(f'Downloading {file_name}')
         weight = wandb.restore(f'{folder}/{file_name}', run_path=run_path)
