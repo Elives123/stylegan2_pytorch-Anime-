@@ -529,7 +529,6 @@ class Trainer:
                     # Pathreg is expensive to compute which
                     # is why G regularization has its own settings
                     # for subdivisions and batch size.
-                    g_reg_start_time = time.time()
                     for _ in range(self.G_reg_subdivisions):
                         latents, latent_labels = self.prior_generator(
                             batch_size=self.G_reg_device_batch_size,
@@ -540,12 +539,13 @@ class Trainer:
                             latents=latents,
                             latent_labels=latent_labels
                         )
+                        g_reg_start_time = time.time()
                         G_reg_loss += self._backward(
                             reg_loss,
                             self.G_opt, mul=self.G_reg_interval or 1,
                             subdivisions=self.G_reg_subdivisions
                         )
-                    print("--- G reg took %s seconds ---\n" % (time.time() - g_reg_start_time))
+                        print("--- G reg took %s seconds ---\n" % (time.time() - g_reg_start_time))
                 self._sync_distributed(G=self.G)
                 self.G_opt.step()
                 # Update moving average of weights after
