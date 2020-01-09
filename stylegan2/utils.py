@@ -763,5 +763,6 @@ def restore_files(run_path, folder):
     for file_name in names:
         print(f'Downloading {file_name}')
         weight = wandb.restore(f'{folder}/{file_name}', run_path=run_path)
-        result[file_name] = weight.name
+        key = file_name.split('.')[0]
+        result[key] = weight.name
     return result
