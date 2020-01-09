@@ -453,23 +453,20 @@ class Trainer:
             loss (torch.Tensor): The loss scaled by mul
                 and subdivisions but not by world size.
         """
+        backward_start_time = time.time()
         if loss is None:
             return 0
         mul /= subdivisions or self.subdivisions
         mul /= self.world_size or 1
         if mul != 1:
-            mul_start = time.time()
             loss *= mul
-            print("--- mul took %s seconds ---\n" % (time.time() - mul_start))
         if self.half:
             with amp.scale_loss(loss, opt) as scaled_loss:
                 scaled_loss.backward()
         else:
             loss.backward()
-        result_start = time.time()
-        result = loss * (self.world_size or 1)
-        print("--- result took %s seconds ---\n" % (time.time() - result_start))
-        return result
+        print("--- backward_start_time took %s seconds ---\n" % (time.time() - backward_start_time))
+        return loss * (self.world_size or 1)
 
     def train(self, iterations, callbacks=None, verbose=True):
         """
@@ -545,6 +542,7 @@ class Trainer:
                             latent_labels=latent_labels
                         )
                         g_reg_start_time = time.time()
+                        print('-- G reg started --\n')
                         G_reg_loss += self._backward(
                             reg_loss,
                             self.G_opt, mul=self.G_reg_interval or 1,
