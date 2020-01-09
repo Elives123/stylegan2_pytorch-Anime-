@@ -674,7 +674,9 @@ class Trainer:
                     )
                     self.save_checkpoint(checkpoint_path)
                     if wandb.run is not None:
-                        print(wandb.save(os.path.abspath(checkpoint_path)))
+                        print(wandb.save(checkpoint_path))
+                        wandb.save(os.path.join(wandb.run.dir, "*.pth"))
+                        wandb.save(os.path.join(wandb.run.dir, "*.json"))
 
             self.seen += 1
 
