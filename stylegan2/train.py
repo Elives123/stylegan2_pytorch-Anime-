@@ -622,6 +622,7 @@ class Trainer:
             # Tensorboard logging
             if self.tb_writer is not None:
                 self.tb_writer.add_scalar('Loss/G_loss', G_loss, self.seen)
+                self.tb_writer.add_scalar('Params/G_lr', self.G_opt.param_groups[0]['lr'])
                 if G_reg:
                     self.tb_writer.add_scalar('Loss/G_reg', G_reg_loss, self.seen)
                     self.tb_writer.add_scalar('Grad_norm/G_reg', G_grad_norm, self.seen)
@@ -629,6 +630,7 @@ class Trainer:
                 else:
                     self.tb_writer.add_scalar('Grad_norm/G_loss', G_grad_norm, self.seen)
                 self.tb_writer.add_scalar('Loss/D_loss', D_loss, self.seen)
+                self.tb_writer.add_scalar('Params/D_lr', self.D_opt.param_groups[0]['lr'])
                 if D_reg:
                     self.tb_writer.add_scalar('Loss/D_reg', D_reg_loss, self.seen)
                     self.tb_writer.add_scalar('Grad_norm/D_reg', D_grad_norm, self.seen)
