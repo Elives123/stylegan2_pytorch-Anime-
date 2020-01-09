@@ -836,8 +836,8 @@ class Trainer:
         checkpoint_path = None
         if wandb.run is not None:
             run = wandb.run
-            folder = utils.locate_latest_pt(f'{run.entity}/{run.project}')
-            utils.restore_files(run.path, folder)
+            run_path, folder = utils.locate_latest_pt(f'{run.entity}/{run.project}')
+            utils.restore_files(run_path, folder)
             checkpoint_path = folder
         else:
             checkpoint_path = _find_checkpoint(checkpoint_path)
