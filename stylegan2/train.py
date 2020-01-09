@@ -757,8 +757,6 @@ class Trainer:
             'No tensorboard log dir was specified ' + \
             'when constructing this object.'
         image = utils.stack_images_PIL(images, individual_img_size=resize)
-        # if self.wandb_project is not None:
-        #     wandb.log({"samples": [wandb.Image(image, caption='fake')]})
         image = torchvision.transforms.ToTensor()(image)
         self.tb_writer.add_image(name, image, self.seen)
 
@@ -836,8 +834,9 @@ class Trainer:
                 is changed.
         """
         checkpoint_path = None
+        print(kwargs['wandb_project'], kwargs)
         if kwargs['wandb_project'] is not None:
-            run = wandb.run()
+            run = wandb.run
             folder = utils.locate_latest_pt(f'{run.entity}/{run.project}')
             utils.restore_files(run.path, folder)
             checkpoint_path = folder
