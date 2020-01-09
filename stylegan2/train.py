@@ -675,6 +675,8 @@ class Trainer:
                         '{}_{}'.format(self.seen, time.strftime('%Y-%m-%d_%H-%M-%S'))
                     )
                     self.save_checkpoint(checkpoint_path)
+                    if wandb.run is not None:
+                        wandb.save(checkpoint_path)
 
         if verbose:
             progress.close()
