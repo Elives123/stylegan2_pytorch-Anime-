@@ -725,7 +725,6 @@ def get_trainer(args):
             master_addr=args.master_addr,
             master_port=args.master_port,
             tensorboard_log_dir=args.tensorboard_log_dir,
-            wandb_project=args.wandb_project
         )
     else:
         G, D = get_models(args)
@@ -760,7 +759,6 @@ def get_trainer(args):
             world_size=args.world_size,
             master_addr=args.master_addr,
             master_port=args.master_port,
-            wandb_project=args.wandb_project
         )
     if args.fid_interval and not args.rank:
         fid_model = inception.InceptionV3FeatureExtractor(

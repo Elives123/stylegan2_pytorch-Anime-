@@ -196,8 +196,7 @@ class Trainer:
                  rank=None,
                  world_size=None,
                  master_addr='127.0.0.1',
-                 master_port='23456',
-                 wandb_project=None):
+                 master_port='23456'):
         assert not isinstance(G, nn.parallel.DistributedDataParallel) and \
                not isinstance(D, nn.parallel.DistributedDataParallel), \
                'Encountered a model wrapped in `DistributedDataParallel`. ' + \
@@ -369,7 +368,6 @@ class Trainer:
         self.seen = seen
         self.metrics = {}
         self.callbacks = []
-        self.wandb_project = wandb_project
 
     def _get_batch(self):
         """
@@ -837,7 +835,14 @@ class Trainer:
                 is continued on a different device or when distributed training
                 is changed.
         """
-        checkpoint_path = _find_checkpoint(checkpoint_path)
+        checkpoint_path = None
+        if kwargs['wandb_project'] is not None:
+            run = wandb.run()
+            folder = utils.locate_latest_pt(f'{run.entity}/{run.project}')
+            utils.restore_files(run.path, folder)
+            checkpoint_path = folder
+        else:
+            checkpoint_path = _find_checkpoint(checkpoint_path)
         _is_checkpoint(checkpoint_path, enforce=True)
         with open(os.path.join(checkpoint_path, 'kwargs.json'), 'r') as fp:
             loaded_kwargs = json.load(fp)

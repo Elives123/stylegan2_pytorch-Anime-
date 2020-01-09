@@ -13,6 +13,7 @@ import torchvision
 from io import BytesIO
 
 import lmdb
+import wandb
 from PIL import Image
 from torch.utils.data import Dataset
 
@@ -27,7 +28,7 @@ except ImportError:
     pass
 
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Miscellaneous utils
 
 
@@ -58,7 +59,8 @@ class AttributeDict(dict):
     def __repr__(self):
         return '{}({})'.format(
             self.__class__.__name__,
-            ', '.join('{}={}'.format(key, value) for key, value in self.items())
+            ', '.join('{}={}'.format(key, value)
+                      for key, value in self.items())
         )
 
     @classmethod
@@ -150,7 +152,7 @@ def slerp(a, b, beta):
     return _normalize(d)
 
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Command line utils
 
 
@@ -188,7 +190,7 @@ class ConfigArgumentParser(argparse.ArgumentParser):
 
 def bool_type(v):
     if isinstance(v, bool):
-       return v
+        return v
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
@@ -210,7 +212,7 @@ def range_type(s):
     return [int(x) for x in vals]
 
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Dataset and generation of latents
 
 
@@ -231,11 +233,13 @@ class ImageFolder(torchvision.datasets.ImageFolder):
         self.transform = torchvision.transforms.Compose(transforms)
 
     def _find_classes(self, *args, **kwargs):
-        classes, class_to_idx = super(ImageFolder, self)._find_classes(*args, **kwargs)
+        classes, class_to_idx = super(
+            ImageFolder, self)._find_classes(*args, **kwargs)
         if not classes:
             classes = ['']
             class_to_idx = {'': 0}
         return classes, class_to_idx
+
 
 class LmdbDataset(Dataset):
     def __init__(self, path, mirror=False, pixel_min=-1, pixel_max=1, resolution=512):
@@ -265,7 +269,8 @@ class LmdbDataset(Dataset):
             raise IOError('Cannot open lmdb dataset', path)
 
         with self.env.begin(write=False) as txn:
-            self.length = int(txn.get('length'.encode('utf-8')).decode('utf-8'))
+            self.length = int(
+                txn.get('length'.encode('utf-8')).decode('utf-8'))
 
     def __len__(self):
         return self.length
@@ -280,7 +285,6 @@ class LmdbDataset(Dataset):
         img = self.transform(img)
 
         return img
-
 
 
 class PriorGenerator:
@@ -312,11 +316,12 @@ class PriorGenerator:
         labels = None
         if self.label_size:
             label_shape = [batch_size]
-            labels = torch.randint(0, self.label_size, label_shape, device=self.device)
+            labels = torch.randint(
+                0, self.label_size, label_shape, device=self.device)
         return latents, labels
 
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Training utils
 
 
@@ -344,10 +349,10 @@ class MovingAverageModule:
             assert type(to_module) == type(from_module), \
                 'Mismatch between type of source and target module.'
             assert set(self._get_named_parameters(to_module).keys()) \
-            == set(self._get_named_parameters(from_module).keys()), \
+                == set(self._get_named_parameters(from_module).keys()), \
                 'Mismatch between parameters of source and target module.'
             assert set(self._get_named_buffers(to_module).keys()) \
-            == set(self._get_named_buffers(from_module).keys()), \
+                == set(self._get_named_buffers(from_module).keys()), \
                 'Mismatch between buffers of source and target module.'
             self.module = to_module.to(device)
         self.module.eval().requires_grad_(False)
@@ -433,7 +438,10 @@ def move_to_device(value, device):
     return value, orig_device
 
 
-_WRAPPER_CLASSES = (MovingAverageModule, nn.DataParallel, nn.parallel.DistributedDataParallel)
+_WRAPPER_CLASSES = (MovingAverageModule, nn.DataParallel,
+                    nn.parallel.DistributedDataParallel)
+
+
 def unwrap_module(module):
     if isinstance(module, _WRAPPER_CLASSES):
         return module.module
@@ -461,7 +469,7 @@ def get_grad_norm_from_optimizer(optimizer, norm_type=2):
     return total_norm.item()
 
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # printing and logging utils
 
 
@@ -541,6 +549,7 @@ class ProgressWriter:
         clear (bool, optional): If running from a notebook, clear
             the current cell's output. Default value is False.
     """
+
     def __init__(self, length=None, progress_bar=True, clear=False):
         if is_notebook() and clear:
             notebook_clear()
@@ -585,7 +594,8 @@ class ProgressWriter:
             step (bool): Update the progressbar if present.
                 Default value is True.
         """
-        string = '\n'.join(str(line) for line in lines if line and line.strip())
+        string = '\n'.join(str(line)
+                           for line in lines if line and line.strip())
         if self._simple_pbar:
             string = _progress_bar(self.count, self.length) + '\n' + string
         if is_notebook():
@@ -632,6 +642,7 @@ class _StrRepr:
     A wrapper for strings that returns the string
     on repr() calls. Used by notebooks.
     """
+
     def __init__(self, string):
         self.string = string
 
@@ -639,7 +650,7 @@ class _StrRepr:
         return self.string
 
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # image utils
 
 
@@ -719,5 +730,38 @@ def stack_images_PIL(imgs, shape=None, individual_img_size=None):
                 canvas.paste(img, offset)
     return canvas
 
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # wandb utils
+
+
+def locate_latest_pt(path):
+    api = wandb.Api()
+    runs = api.runs(path, order='created_at')
+    folder = None
+
+    # loop for each run to find the lastest model
+    for run in runs:
+        files = run.files()
+        count = 0
+        for file in files:
+            if '.pth' in file.name:
+                ckpt_count = file.name.split('_')[0]
+                if not ckpt_count.isdigit():
+                    continue
+                if int(ckpt_count) > count:
+                    count = int(ckpt_count)
+                    folder = file.name.split('/')[0]
+
+        if count > 0:
+            return folder
+
+
+def restore_files(run_path, folder):
+    names = ['G.pth', 'G_opt.pth', 'D.pth',
+             'D_opt.pth', 'Gs.pth', 'kwargs.json']
+    result = {}
+    for file_name in names:
+        print(f'Downloading {file_name}')
+        weight = wandb.restore(f'{folder}/{file_name}', run_path=run_path)
+        result[file_name] = weight.name
+    return result
