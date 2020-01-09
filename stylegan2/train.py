@@ -453,13 +453,13 @@ class Trainer:
             loss (torch.Tensor): The loss scaled by mul
                 and subdivisions but not by world size.
         """
-        backward_start_time = time.time()
         if loss is None:
             return 0
         mul /= subdivisions or self.subdivisions
         mul /= self.world_size or 1
         if mul != 1:
             loss *= mul
+        backward_start_time = time.time()
         if self.half:
             with amp.scale_loss(loss, opt) as scaled_loss:
                 scaled_loss.backward()
