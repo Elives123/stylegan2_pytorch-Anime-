@@ -849,7 +849,6 @@ class Trainer:
             loaded_kwargs = json.load(fp)
         loaded_kwargs.update(**kwargs)
         device = 'cpu'
-        del loaded_kwargs['wandb_project']
         if isinstance(loaded_kwargs['device'], list):
             device = 'cuda:0'
         print(loaded_kwargs)
