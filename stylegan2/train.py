@@ -674,8 +674,7 @@ class Trainer:
                     )
                     self.save_checkpoint(checkpoint_path)
                     if wandb.run is not None:
-                        print('saving to wandb: ', checkpoint_path)
-                        wandb.save(checkpoint_path)
+                        print(wandb.save(checkpoint_path))
 
             self.seen += 1
 
