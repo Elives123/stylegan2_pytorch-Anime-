@@ -715,7 +715,7 @@ def get_models(args):
 
 def get_trainer(args):
     dataset = get_dataset(args)
-    if args.resume and stylegan2.train._find_checkpoint(args.checkpoint_dir):
+    if args.resume:
         trainer = stylegan2.train.Trainer.load_checkpoint(
             args.checkpoint_dir,
             dataset,

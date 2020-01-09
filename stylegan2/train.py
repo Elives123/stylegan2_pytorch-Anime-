@@ -834,7 +834,6 @@ class Trainer:
                 is changed.
         """
         checkpoint_path = None
-        print(kwargs['wandb_project'], kwargs)
         if kwargs['wandb_project'] is not None:
             run = wandb.run
             folder = utils.locate_latest_pt(f'{run.entity}/{run.project}')
