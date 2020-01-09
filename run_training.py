@@ -878,7 +878,7 @@ def main():
     args = parser.parse_args()
     if args.wandb_project is not None:
         assert 'wandb' in sys.modules, 'Wandb not installed '
-        wandb.init(project=args.wandb_project, sync_tensorboard=True)
+        wandb.init(project=args.wandb_project, sync_tensorboard=False)
         wandb.config.update(args)
     if len(args.gpu) > 1 and args.distributed:
         assert args.rank is None and args.world_size is None, \
