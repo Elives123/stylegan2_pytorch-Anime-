@@ -466,9 +466,9 @@ class Trainer:
                 scaled_loss.backward()
         else:
             loss.backward()
-        mul_start = time.time()
+        result_start = time.time()
         result = loss * (self.world_size or 1)
-        print("--- result took %s seconds ---\n" % (time.time() - mul_start))
+        print("--- result took %s seconds ---\n" % (time.time() - result_start))
         return result
 
     def train(self, iterations, callbacks=None, verbose=True):
