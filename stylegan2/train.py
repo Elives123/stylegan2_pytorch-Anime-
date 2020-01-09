@@ -674,7 +674,10 @@ class Trainer:
                     )
                     self.save_checkpoint(checkpoint_path)
                     if wandb.run is not None:
-                        print(wandb.save(checkpoint_path, policy='live'))
+                        folder = checkpoint_path.split('/')[1]
+                        print(wandb.save(checkpoint_path))
+                        print(wandb.save(os.path.join(wandb.run.dir, folder, "*.pth")))
+                        print(wandb.save(os.path.join(wandb.run.dir, folder, "*.json")))
 
             self.seen += 1
 

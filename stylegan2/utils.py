@@ -754,15 +754,3 @@ def locate_latest_pt(path):
 
         if count > 0:
             return '/'.join(run.path), folder
-
-
-def restore_files(run_path, folder):
-    names = ['G.pth', 'G_opt.pth', 'D.pth',
-             'D_opt.pth', 'Gs.pth', 'kwargs.json']
-    result = {}
-    for file_name in names:
-        print(f'Downloading {file_name}')
-        weight = wandb.restore(f'{folder}/{file_name}', run_path=run_path)
-        key = file_name.split('.')[0]
-        result[key] = weight.name
-    return result
