@@ -849,6 +849,7 @@ class Trainer:
         del loaded_kwargs['wandb_project']
         if isinstance(loaded_kwargs['device'], list):
             device = 'cuda:0'
+        print(loaded_kwargs)
         for name in ['G', 'D']:
             fpath = os.path.join(checkpoint_path, name + '.pth')
             loaded_kwargs[name] = models.load(fpath, map_location=device)
