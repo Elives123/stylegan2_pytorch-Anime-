@@ -9,6 +9,8 @@ import torch
 import torch.utils.tensorboard
 from torch import nn
 import torchvision
+import time
+
 import wandb
 try:
     import apex
@@ -500,11 +502,13 @@ class Trainer:
             # Disable gradients for D while training G
             self.D.requires_grad_(False)
 
+            generator_train_time = time.time()
             for _ in range(self.G_iter):
+                loop_start_time = time.time()
                 self.G_opt.zero_grad()
 
                 G_loss = 0
-                for i in range(self.subdivisions):
+                for _ in range(self.subdivisions):
                     latents, latent_labels = self.prior_generator(
                         multi_latent_prob=self.style_mix_prob)
                     loss, _ = self.G_loss(
@@ -548,6 +552,10 @@ class Trainer:
                 # each G training subiteration
                 if self.Gs is not None:
                     self.Gs.update()
+
+            print("--- training generator took %s seconds ---" % (time.time() - generator_train_time))
+
+            discriminator_train_time = time.time()
 
             # Re-enable gradients for D
             self.D.requires_grad_(True)
@@ -601,6 +609,8 @@ class Trainer:
                             reg_loss, self.D_opt, mul=self.D_reg_interval or 1)
                 self._sync_distributed(D=self.D)
                 self.D_opt.step()
+
+            print("--- training discriminator took %s seconds ---" % (time.time() - discriminator_train_time))
 
             # Re-enable grads for G
             self.G.requires_grad_(True)
@@ -676,6 +686,8 @@ class Trainer:
                         '{}_{}'.format(self.seen, time.strftime('%Y-%m-%d_%H-%M-%S'))
                     )
                     self.save_checkpoint(checkpoint_path)
+
+            print("--- training loop took %s seconds ---" % (time.time() - loop_start_time))
 
         if verbose:
             progress.close()
@@ -758,8 +770,8 @@ class Trainer:
             'No tensorboard log dir was specified ' + \
             'when constructing this object.'
         image = utils.stack_images_PIL(images, individual_img_size=resize)
-        if self.wandb_project is not None:
-            wandb.log({"samples": [wandb.Image(image, caption='fake')]})
+        # if self.wandb_project is not None:
+        #     wandb.log({"samples": [wandb.Image(image, caption='fake')]})
         image = torchvision.transforms.ToTensor()(image)
         self.tb_writer.add_image(name, image, self.seen)
 
