@@ -845,6 +845,7 @@ class Trainer:
         with open(os.path.join(checkpoint_path, 'kwargs.json'), 'r') as fp:
             loaded_kwargs = json.load(fp)
         loaded_kwargs.update(**kwargs)
+        print(loaded_kwargs)
         for name in ['G', 'D']:
             fpath = os.path.join(checkpoint_path, name + '.pth')
             loaded_kwargs[name] = models.load(fpath, map_location=loaded_kwargs['device'])
