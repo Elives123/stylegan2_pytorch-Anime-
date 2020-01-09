@@ -845,20 +845,22 @@ class Trainer:
         with open(os.path.join(checkpoint_path, 'kwargs.json'), 'r') as fp:
             loaded_kwargs = json.load(fp)
         loaded_kwargs.update(**kwargs)
-        print(loaded_kwargs)
+        device = 'cpu'
+        if isinstance(loaded_kwargs['device'], list):
+            device = 'cuda:0'
         for name in ['G', 'D']:
             fpath = os.path.join(checkpoint_path, name + '.pth')
-            loaded_kwargs[name] = models.load(fpath, map_location=loaded_kwargs['device'])
+            loaded_kwargs[name] = models.load(fpath, map_location=device)
         if os.path.exists(os.path.join(checkpoint_path, 'Gs.pth')):
             loaded_kwargs['Gs'] = models.load(
                 os.path.join(checkpoint_path, 'Gs.pth'),
-                map_location=loaded_kwargs['device'] if loaded_kwargs['Gs_device'] is None \
+                map_location=device if loaded_kwargs['Gs_device'] is None \
                     else loaded_kwargs['Gs_device']
             )
         obj = cls(dataset=dataset, **loaded_kwargs)
         for name in ['G_opt', 'D_opt']:
             fpath = os.path.join(checkpoint_path, name + '.pth')
-            state_dict = torch.load(fpath, map_location=torch.device(loaded_kwargs['device']))
+            state_dict = torch.load(fpath, map_location=torch.device(device))
             getattr(obj, name).load_state_dict(state_dict)
         return obj
 
