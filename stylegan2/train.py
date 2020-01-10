@@ -885,8 +885,9 @@ class Trainer:
         obj = cls(dataset=dataset, **loaded_kwargs)
         for name in ['G_opt', 'D_opt']:
             fpath = os.path.join(checkpoint_path, name + '.pth')
-            state_dict = torch.load(fpath, map_location=torch.device(device))
-            getattr(obj, name).load_state_dict(state_dict)
+            if os.path.isfile(fpath):
+                state_dict = torch.load(fpath, map_location=torch.device(device))
+                getattr(obj, name).load_state_dict(state_dict)
         return obj
 
     @classmethod
