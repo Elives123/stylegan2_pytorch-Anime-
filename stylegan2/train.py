@@ -907,8 +907,7 @@ class Trainer:
             )
         obj = cls(dataset=dataset, **loaded_kwargs)
         for name in ['G_opt', 'D_opt']:
-            state_dict = torch.load(weights[name], map_location=torch.device(device))
-            getattr(obj, name).load_state_dict(state_dict)
+            getattr(obj, name).load_state_dict(weights[name])
         return obj
 
 
