@@ -536,16 +536,11 @@ class Trainer:
                             latents=latents,
                             latent_labels=latent_labels
                         )
-                        start_time = time.time()
-                        g_reg_l = self._backward(
+                        G_reg_loss += self._backward(
                             reg_loss,
                             self.G_opt, mul=self.G_reg_interval or 1,
                             subdivisions=self.G_reg_subdivisions
                         )
-                        print("--- computation g_reg_l %s seconds ---" % (time.time() - start_time))
-                        start_time = time.time()
-                        G_reg_loss += g_reg_l
-                        print("--- plus g_reg_l %s seconds ---" % (time.time() - start_time))
                 self._sync_distributed(G=self.G)
                 self.G_opt.step()
                 # Update moving average of weights after
