@@ -756,7 +756,7 @@ def locate_latest_pt(path):
                     count = int(ckpt_count)
                     filename = file.name
 
-        if count > 0:
+        if count > -1:
             return '/'.join(run.path), filename
 
 def restore_files(run_path, folder):
