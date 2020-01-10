@@ -532,11 +532,13 @@ class Trainer:
                             multi_latent_prob=self.style_mix_prob
                         )
                         reg_loss = torch.tensor(0.0, device=self.device)
+                        print(reg_loss)
                         _, reg_loss = self.G_reg(
                             G=self.G,
                             latents=latents,
                             latent_labels=latent_labels
                         )
+                        print(reg_loss)
                         G_reg_loss += self._backward(
                             reg_loss,
                             self.G_opt, mul=self.G_reg_interval or 1,
