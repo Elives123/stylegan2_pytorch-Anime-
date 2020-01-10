@@ -668,7 +668,7 @@ class Trainer:
             # Handle checkpointing
             if not self.rank and self.checkpoint_dir and self.checkpoint_interval:
                 if self.seen % self.checkpoint_interval == 0:
-                    checkpoint_path = os.path.join(checkpoint_path, f'{str(self.seen).zfill(8)}.pth')
+                    checkpoint_path = os.path.join(self.checkpoint_dir, f'{str(self.seen).zfill(8)}.pth')
                     self.save_checkpoint(checkpoint_path)
                     if wandb.run is not None:
                         print(wandb.save(checkpoint_path))
