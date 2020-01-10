@@ -10,10 +10,12 @@ def _grad(input, output, retain_graph):
     # Currently not possible to not
     # retain graph for regularization losses.
     # Ugly hack is to always set it to True.
+    retain_graph = True
     grads = torch.autograd.grad(
         output.sum(),
         input,
         only_inputs=True,
+        retain_graph=retain_graph,
         create_graph=True
     )
     return grads[0]
@@ -38,8 +40,9 @@ def _grad_reg(input, output, gamma, retain_graph=True):
 
 
 def _pathreg(dlatents, fakes, pl_avg, pl_decay, gamma, retain_graph=True):
+    retain_graph = True
     pl_noise = torch.empty_like(fakes).normal_().div_(np.sqrt(np.prod(fakes.size()[2:])))
-    pl_grad = _grad(dlatents, torch.sum(pl_noise * fakes), retain_graph=False)
+    pl_grad = _grad(dlatents, torch.sum(pl_noise * fakes), retain_graph=retain_graph)
     pl_length = torch.sqrt(torch.mean(torch.sum(pl_grad ** 2, dim=2), dim=1))
     with torch.no_grad():
         pl_avg.add_(pl_decay * (torch.mean(pl_length) - pl_avg))
