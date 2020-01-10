@@ -832,6 +832,25 @@ class Trainer:
 
     @classmethod
     def load_checkpoint(cls, checkpoint_path, dataset, **kwargs):
+        if wandb.run is not None:
+            run = wandb.run
+            run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
+            folder = filename.split('/')[0]
+            if '_' not in result.name:
+                checkpoint_path = result.name
+                result = wandb.restore(filename, run_path=run_path)
+            else:
+                folder = filename.split('/')[0]
+                result = utils.restore_files(run_path, folder)
+                checkpoint_path = '/'.join(result['G'].split('/')[:-1])
+
+        single = os.path.isfile(checkpoint_path)
+        if single:
+            return Trainer.load_single_checkpoint(checkpoint_path, dataset, **kwargs)
+        return Trainer.load_folder_checkpoint(checkpoint_path, dataset, **kwargs)
+
+    @classmethod
+    def load_folder_checkpoint(cls, checkpoint_path, dataset, **kwargs):
         """
         Load a checkpoint into a new Trainer object and return that
         object. If the path specified points at a folder containing
@@ -847,15 +866,6 @@ class Trainer:
                 is continued on a different device or when distributed training
                 is changed.
         """
-        checkpoint_path = None
-        if wandb.run is not None:
-            run = wandb.run
-            run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
-            folder = filename.split('/')[0]
-            result = utils.restore_files(run_path, folder)
-            checkpoint_path = '/'.join(result['G'].split('/')[:-1])
-        else:
-            checkpoint_path = _find_checkpoint(checkpoint_path)
         _is_checkpoint(checkpoint_path, enforce=True)
         with open(os.path.join(checkpoint_path, 'kwargs.json'), 'r') as fp:
             loaded_kwargs = json.load(fp)
@@ -881,16 +891,10 @@ class Trainer:
 
     @classmethod
     def load_single_checkpoint(cls, checkpoint_path, dataset, **kwargs):
-        if wandb.run is not None:
-            run = wandb.run
-            run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
-            folder = filename.split('/')[0]
-            result = wandb.restore(filename, run_path=run_path)
-            checkpoint_path = result.name
         device = 'cpu'
         if isinstance(kwargs['device'], list):
             device = 'cuda:0'
-        weights = torch.load(checkpoint_pathm, map_location=torch.device(device))
+        weights = torch.load(checkpoint_path, map_location=torch.device(device))
         loaded_kwargs = weights['kwargs']
         loaded_kwargs.update(**kwargs)
         for name in ['G', 'D']:
