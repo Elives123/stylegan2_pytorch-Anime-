@@ -836,6 +836,7 @@ class Trainer:
             run = wandb.run
             run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
             if '_' not in filename:
+                print(f'Downloading {filename}')
                 result = wandb.restore(filename, run_path=run_path)
                 checkpoint_path = result.name
             else:

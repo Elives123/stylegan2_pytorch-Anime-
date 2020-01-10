@@ -184,13 +184,15 @@ def load(fpath, map_location='cpu'):
     """
     Load a model.
     Arguments:
-        fpath (str): File path of saved model.
+        fpath (str or loaded dict): File path of saved model.
         map_location (str, int, torch.device): Weights and
             buffers will be loaded into this device.
             Default value is 'cpu'.
     Returns:
         model (nn.Module): Model that inherits `_BaseModel`.
     """
+    if not isinstance(fpath, str):
+        return _deserialize(fpath)
     if map_location is not None:
         map_location = torch.device(map_location)
     return _deserialize(torch.load(fpath, map_location=map_location))
