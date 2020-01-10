@@ -907,7 +907,7 @@ class Trainer:
             )
         obj = cls(dataset=dataset, **loaded_kwargs)
         for name in ['G_opt', 'D_opt']:
-            getattr(obj, name).load_state_dict(weights[name])
+            getattr(obj, name).load_state_dict(weights[name], strict=False)
         return obj
 
 
