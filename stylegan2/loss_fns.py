@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch.nn import functional as F
+import time
 
 from . import utils
 
@@ -40,13 +41,16 @@ def _grad_reg(input, output, gamma, retain_graph=True):
 
 
 def _pathreg(dlatents, fakes, pl_avg, pl_decay, gamma, retain_graph=True):
+    start = time.time()
     retain_graph = True
     pl_noise = torch.empty_like(fakes).normal_().div_(np.sqrt(np.prod(fakes.size()[2:])))
     pl_grad = _grad(dlatents, torch.sum(pl_noise * fakes), retain_graph=retain_graph)
     pl_length = torch.sqrt(torch.mean(torch.sum(pl_grad ** 2, dim=2), dim=1))
     with torch.no_grad():
         pl_avg.add_(pl_decay * (torch.mean(pl_length) - pl_avg))
-    return gamma * torch.mean((pl_length - pl_avg) ** 2)
+    result = gamma * torch.mean((pl_length - pl_avg) ** 2)
+    print('-- took %s --\n' % time.time() - start)
+    return result
 
 
 #----------------------------------------------------------------------------
