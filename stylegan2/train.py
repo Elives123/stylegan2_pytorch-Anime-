@@ -814,7 +814,7 @@ class Trainer:
                 'G':  utils.unwrap_module(self.G)._serialize(half=False),
                 'D':  utils.unwrap_module(self.G)._serialize(half=False),
                 'G_opt': self.G_opt.state_dict(),
-                'D_opt': self.D_opt.state_dict()
+                'D_opt': self.D_opt.state_dict(),
             }
 
             if self.Gs is not None:
@@ -908,7 +908,8 @@ class Trainer:
         obj = cls(dataset=dataset, **loaded_kwargs)
         for name in ['G_opt', 'D_opt']:
             print(weights[name]['param_groups'])
-            getattr(obj, name).load_state_dict(weights[name])
+            getattr(obj, name)
+            getattr(obj, name).load_state_dict(weights[name], strict=False)
         return obj
 
 
