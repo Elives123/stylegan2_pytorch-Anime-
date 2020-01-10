@@ -796,7 +796,7 @@ class Trainer:
         Arguments:
             path (str): The checkpoint path.
         """
-        single = os.path.isfile(path)
+        single = '.pth' in path
         # Update arguments that may have changed since construction
         paths = path.split('/')
         dir_path = '/'.join(paths[:-1])
