@@ -797,6 +797,10 @@ class Trainer:
             path (str): The checkpoint path.
         """
         # Update arguments that may have changed since construction
+        paths = path.split('/')
+        dir_name = '/'.join(path[:-1])
+        if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
         kwargs = self.kwargs.copy()
         kwargs.update(
             seen=self.seen,
