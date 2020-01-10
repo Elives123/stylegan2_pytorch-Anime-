@@ -41,16 +41,13 @@ def _grad_reg(input, output, gamma, retain_graph=True):
 
 
 def _pathreg(dlatents, fakes, pl_avg, pl_decay, gamma, retain_graph=True):
-    start_time = time.time()
     retain_graph = True
     pl_noise = torch.empty_like(fakes).normal_().div_(np.sqrt(np.prod(fakes.size()[2:])))
     pl_grad = _grad(dlatents, torch.sum(pl_noise * fakes), retain_graph=retain_graph)
     pl_length = torch.sqrt(torch.mean(torch.sum(pl_grad ** 2, dim=2), dim=1))
     with torch.no_grad():
         pl_avg.add_(pl_decay * (torch.mean(pl_length) - pl_avg))
-    result = gamma * torch.mean((pl_length - pl_avg) ** 2)
-    print("--- %s seconds ---\n" % (time.time() - start_time))
-    return result
+    return gamma * torch.mean((pl_length - pl_avg) ** 2)
 
 
 #----------------------------------------------------------------------------
@@ -207,6 +204,7 @@ def G_pathreg(G,
               gamma=2,
               *args,
               **kwargs):
+    start_time = time.time()
     loss = None
     reg = None
     if gamma:
@@ -219,6 +217,8 @@ def G_pathreg(G,
             gamma=gamma,
             retain_graph=False
         ).float()
+
+    print("--- G_pathreg %s seconds ---" % (time.time() - start_time))
     return loss, reg
 
 
