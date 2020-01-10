@@ -811,10 +811,10 @@ class Trainer:
         if single:
             checkpoint = {
                 'kwargs': kwargs,
-                'G':  utils.unwrap_module(self.G)._serialize(half=False),
-                'D':  utils.unwrap_module(self.G)._serialize(half=False),
                 'G_opt': self.G_opt.state_dict(),
                 'D_opt': self.D_opt.state_dict(),
+                'G':  utils.unwrap_module(self.G)._serialize(half=False),
+                'D':  utils.unwrap_module(self.D)._serialize(half=False),
             }
 
             if self.Gs is not None:
