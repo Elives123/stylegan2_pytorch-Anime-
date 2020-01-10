@@ -41,7 +41,7 @@ def _grad_reg(input, output, gamma, retain_graph=True):
 
 
 def _pathreg(dlatents, fakes, pl_avg, pl_decay, gamma, retain_graph=True):
-    start = time.time()
+    start_time = time.time()
     retain_graph = True
     pl_noise = torch.empty_like(fakes).normal_().div_(np.sqrt(np.prod(fakes.size()[2:])))
     pl_grad = _grad(dlatents, torch.sum(pl_noise * fakes), retain_graph=retain_graph)
