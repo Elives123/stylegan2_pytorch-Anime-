@@ -742,7 +742,7 @@ def locate_latest_pt(path):
     # loop for each run to find the lastest model
     for run in runs:
         files = run.files()
-        count = 0
+        count = -1
         for file in files:
             if '.pth' in file.name:
                 ckpt_count = None
