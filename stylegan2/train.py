@@ -665,6 +665,8 @@ class Trainer:
             for callback in utils.to_list(callbacks) + self.callbacks:
                 callback(self.seen)
 
+            self.seen += 1
+
             # Handle checkpointing
             if not self.rank and self.checkpoint_dir and self.checkpoint_interval:
                 if self.seen % self.checkpoint_interval == 0:
@@ -672,8 +674,6 @@ class Trainer:
                     self.save_checkpoint(checkpoint_path)
                     if wandb.run is not None:
                         print(wandb.save(checkpoint_path))
-
-            self.seen += 1
 
         if verbose:
             progress.close()
