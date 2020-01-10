@@ -737,7 +737,6 @@ def stack_images_PIL(imgs, shape=None, individual_img_size=None):
 def locate_latest_pt(path):
     api = wandb.Api()
     runs = api.runs(path, order='created_at')
-    folder = None
 
     # loop for each run to find the lastest model
     for run in runs:
@@ -745,16 +744,18 @@ def locate_latest_pt(path):
         count = 0
         for file in files:
             if '.pth' in file.name:
-                ckpt_count = file.name.split('_')[0]
+                ckpt_count = None
+                if '_' in file.name:
+                    ckpt_count = file.name.split('_')[0]
+                else:
+                    ckpt_count = file.name.split('.')[0]
                 if not ckpt_count.isdigit():
                     continue
                 if int(ckpt_count) > count:
                     count = int(ckpt_count)
-                    folder = file.name.split('/')[0]
 
         if count > 0:
-            return '/'.join(run.path), folder
-
+            return '/'.join(run.path), file.name
 
 def restore_files(run_path, folder):
     names = ['G.pth', 'G_opt.pth', 'D.pth',

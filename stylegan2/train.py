@@ -796,35 +796,40 @@ class Trainer:
         Arguments:
             path (str): The checkpoint path.
         """
+        single = os.path.isfile(path)
         # Update arguments that may have changed since construction
         paths = path.split('/')
-        dir_name = '/'.join(path[:-1])
-        if not os.path.exists(dir_name):
-            os.mkdir(dir_name)
+        print(path, paths)
+        dir_path = '/'.join(path[:-1])
+        if not os.path.exists(dir_path):
+            os.mkdir(dir_path)
         kwargs = self.kwargs.copy()
         kwargs.update(
             seen=self.seen,
             pl_avg=float(self.pl_avg)
         )
-        checkpoint = {
-            'kwargs': kwargs,
-            'G':  utils.unwrap_module(self.G)._serialize(half=False),
-            'D':  utils.unwrap_module(self.G)._serialize(half=False),
-            'G_opt': self.G_opt.state_dict(),
-            'D_opt': self.D_opt.state_dict()
-        }
 
-        if self.Gs is not None:
-            checkpoint['Gs'] = utils.unwrap_module(self.G)._serialize(half=False)
-        torch.save(checkpoint, path)
-        # with open(os.path.join(dir_path, 'kwargs.json'), 'w') as fp:
-        #     json.dump(kwargs, fp)
-        # torch.save(self.G_opt.state_dict(), os.path.join(dir_path, 'G_opt.pth'))
-        # torch.save(self.D_opt.state_dict(), os.path.join(dir_path, 'D_opt.pth'))
-        # models.save(self.G, os.path.join(dir_path, 'G.pth'))
-        # models.save(self.D, os.path.join(dir_path, 'D.pth'))
-        # if self.Gs is not None:
-        #     models.save(self.Gs, os.path.join(dir_path, 'Gs.pth'))
+        if single:
+            checkpoint = {
+                'kwargs': kwargs,
+                'G':  utils.unwrap_module(self.G)._serialize(half=False),
+                'D':  utils.unwrap_module(self.G)._serialize(half=False),
+                'G_opt': self.G_opt.state_dict(),
+                'D_opt': self.D_opt.state_dict()
+            }
+
+            if self.Gs is not None:
+                checkpoint['Gs'] = utils.unwrap_module(self.G)._serialize(half=False)
+            torch.save(checkpoint, path)
+        else:
+            with open(os.path.join(dir_path, 'kwargs.json'), 'w') as fp:
+                json.dump(kwargs, fp)
+            torch.save(self.G_opt.state_dict(), os.path.join(dir_path, 'G_opt.pth'))
+            torch.save(self.D_opt.state_dict(), os.path.join(dir_path, 'D_opt.pth'))
+            models.save(self.G, os.path.join(dir_path, 'G.pth'))
+            models.save(self.D, os.path.join(dir_path, 'D.pth'))
+            if self.Gs is not None:
+                models.save(self.Gs, os.path.join(dir_path, 'Gs.pth'))
 
     @classmethod
     def load_checkpoint(cls, checkpoint_path, dataset, **kwargs):
@@ -846,7 +851,8 @@ class Trainer:
         checkpoint_path = None
         if wandb.run is not None:
             run = wandb.run
-            run_path, folder = utils.locate_latest_pt(f'{run.entity}/{run.project}')
+            run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
+            folder = filename.split('/')[0]
             result = utils.restore_files(run_path, folder)
             checkpoint_path = '/'.join(result['G'].split('/')[:-1])
         else:
@@ -858,7 +864,6 @@ class Trainer:
         device = 'cpu'
         if isinstance(loaded_kwargs['device'], list):
             device = 'cuda:0'
-        print(loaded_kwargs)
         for name in ['G', 'D']:
             fpath = os.path.join(checkpoint_path, name + '.pth')
             loaded_kwargs[name] = models.load(fpath, map_location=device)
@@ -874,6 +879,35 @@ class Trainer:
             state_dict = torch.load(fpath, map_location=torch.device(device))
             getattr(obj, name).load_state_dict(state_dict)
         return obj
+
+    @classmethod
+    def load_single_checkpoint(cls, checkpoint_path, dataset, **kwargs):
+        if wandb.run is not None:
+            run = wandb.run
+            run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
+            folder = filename.split('/')[0]
+            result = wandb.restore(filename, run_path=run_path)
+            checkpoint_path = result.name
+        device = 'cpu'
+        if isinstance(kwargs['device'], list):
+            device = 'cuda:0'
+        weights = torch.load(checkpoint_pathm map_location=torch.device(device))
+        loaded_kwargs = weights['kwargs']
+        loaded_kwargs.update(**kwargs)
+        for name in ['G', 'D']:
+            loaded_kwargs[name] = models.load(weights[name], map_location=device)
+        if 'Gs' in weights:
+            loaded_kwargs['Gs'] = models.load(
+                weights['Gs'],
+                map_location=device if loaded_kwargs['Gs_device'] is None \
+                    else loaded_kwargs['Gs_device']
+            )
+        obj = cls(dataset=dataset, **loaded_kwargs)
+        for name in ['G_opt', 'D_opt']:
+            state_dict = torch.load(weights[name], map_location=torch.device(device))
+            getattr(obj, name).load_state_dict(state_dict)
+        return obj
+
 
 
 #----------------------------------------------------------------------------
