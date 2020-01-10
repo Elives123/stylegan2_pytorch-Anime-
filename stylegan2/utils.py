@@ -749,6 +749,7 @@ def locate_latest_pt(path):
                     ckpt_count = file.name.split('_')[0]
                 else:
                     ckpt_count = file.name.split('.')[0]
+                print(file.name, ckpt_count)
                 if not ckpt_count.isdigit():
                     continue
                 if int(ckpt_count) > count:
