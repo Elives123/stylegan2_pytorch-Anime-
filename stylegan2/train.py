@@ -835,10 +835,9 @@ class Trainer:
         if wandb.run is not None:
             run = wandb.run
             run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
-            folder = filename.split('/')[0]
-            if '_' not in result.name:
-                checkpoint_path = result.name
+            if '_' not in filename:
                 result = wandb.restore(filename, run_path=run_path)
+                checkpoint_path = result.name
             else:
                 folder = filename.split('/')[0]
                 result = utils.restore_files(run_path, folder)
