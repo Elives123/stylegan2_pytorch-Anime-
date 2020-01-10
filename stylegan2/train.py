@@ -799,8 +799,7 @@ class Trainer:
         single = os.path.isfile(path)
         # Update arguments that may have changed since construction
         paths = path.split('/')
-        print(path, paths)
-        dir_path = '/'.join(path[:-1])
+        dir_path = '/'.join(paths[:-1])
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
         kwargs = self.kwargs.copy()
