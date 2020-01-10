@@ -204,7 +204,6 @@ def G_pathreg(G,
               gamma=2,
               *args,
               **kwargs):
-    start_time = time.time()
     loss = None
     reg = None
     if gamma:
@@ -218,7 +217,6 @@ def G_pathreg(G,
             retain_graph=False
         ).float()
 
-    print("--- G_pathreg %s seconds ---" % (time.time() - start_time))
     return loss, reg
 
 
