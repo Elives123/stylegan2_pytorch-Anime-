@@ -49,7 +49,7 @@ def _pathreg(dlatents, fakes, pl_avg, pl_decay, gamma, retain_graph=True):
     with torch.no_grad():
         pl_avg.add_(pl_decay * (torch.mean(pl_length) - pl_avg))
     result = gamma * torch.mean((pl_length - pl_avg) ** 2)
-    print('-- took %s --\n' % time.time() - start)
+    print("--- %s seconds ---\n" % (time.time() - start_time))
     return result
 
 
