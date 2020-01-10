@@ -797,6 +797,7 @@ class Trainer:
             path (str): The checkpoint path.
         """
         # Update arguments that may have changed since construction
+        kwargs = self.kwargs.copy()
         kwargs.update(
             seen=self.seen,
             pl_avg=float(self.pl_avg)
