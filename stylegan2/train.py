@@ -668,16 +668,10 @@ class Trainer:
             # Handle checkpointing
             if not self.rank and self.checkpoint_dir and self.checkpoint_interval:
                 if self.seen % self.checkpoint_interval == 0:
-                    checkpoint_path = os.path.join(
-                        self.checkpoint_dir,
-                        '{}_{}'.format(self.seen, time.strftime('%Y-%m-%d_%H-%M-%S'))
-                    )
+                    checkpoint_path = os.path.join(checkpoint_path, f'{str(self.seen).zfill(8)}.pth')
                     self.save_checkpoint(checkpoint_path)
                     if wandb.run is not None:
-                        folder = checkpoint_path.split('/')[1]
                         print(wandb.save(checkpoint_path))
-                        print(wandb.save(os.path.join(wandb.run.dir, folder, "*.pth")))
-                        print(wandb.save(os.path.join(wandb.run.dir, folder, "*.json")))
 
             self.seen += 1
 
@@ -794,32 +788,38 @@ class Trainer:
                 )
         self.callbacks.append(callback)
 
-    def save_checkpoint(self, dir_path):
+    def save_checkpoint(self, path):
         """
         Save the current state of this trainer as a checkpoint.
         NOTE: The dataset can not be serialized and saved so this
             has to be reconstructed and given when loading this checkpoint.
         Arguments:
-            dir_path (str): The checkpoint path.
+            path (str): The checkpoint path.
         """
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-        else:
-            assert os.path.isdir(dir_path), '`dir_path` points to a file.'
-        kwargs = self.kwargs.copy()
         # Update arguments that may have changed since construction
         kwargs.update(
             seen=self.seen,
             pl_avg=float(self.pl_avg)
         )
-        with open(os.path.join(dir_path, 'kwargs.json'), 'w') as fp:
-            json.dump(kwargs, fp)
-        torch.save(self.G_opt.state_dict(), os.path.join(dir_path, 'G_opt.pth'))
-        torch.save(self.D_opt.state_dict(), os.path.join(dir_path, 'D_opt.pth'))
-        models.save(self.G, os.path.join(dir_path, 'G.pth'))
-        models.save(self.D, os.path.join(dir_path, 'D.pth'))
+        checkpoint = {
+            'kwargs': kwargs,
+            'G':  utils.unwrap_module(self.G)._serialize(half=False),
+            'D':  utils.unwrap_module(self.G)._serialize(half=False),
+            'G_opt': self.G_opt.state_dict(),
+            'D_opt': self.D_opt.state_dict()
+        }
+
         if self.Gs is not None:
-            models.save(self.Gs, os.path.join(dir_path, 'Gs.pth'))
+            checkpoint['Gs'] = utils.unwrap_module(self.G)._serialize(half=False)
+        torch.save(checkpoint, path)
+        # with open(os.path.join(dir_path, 'kwargs.json'), 'w') as fp:
+        #     json.dump(kwargs, fp)
+        # torch.save(self.G_opt.state_dict(), os.path.join(dir_path, 'G_opt.pth'))
+        # torch.save(self.D_opt.state_dict(), os.path.join(dir_path, 'D_opt.pth'))
+        # models.save(self.G, os.path.join(dir_path, 'G.pth'))
+        # models.save(self.D, os.path.join(dir_path, 'D.pth'))
+        # if self.Gs is not None:
+        #     models.save(self.Gs, os.path.join(dir_path, 'Gs.pth'))
 
     @classmethod
     def load_checkpoint(cls, checkpoint_path, dataset, **kwargs):
