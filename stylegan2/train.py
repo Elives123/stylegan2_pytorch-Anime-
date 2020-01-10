@@ -908,8 +908,8 @@ class Trainer:
         obj = cls(dataset=dataset, **loaded_kwargs)
         for name in ['G_opt', 'D_opt']:
             print(weights[name]['param_groups'])
-            getattr(obj, name)
-            getattr(obj, name).load_state_dict(weights[name], strict=False)
+            print(getattr(obj, name))
+            getattr(obj, name).load_state_dict(weights[name])
         return obj
 
 
