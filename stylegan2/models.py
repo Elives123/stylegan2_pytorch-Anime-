@@ -192,6 +192,7 @@ def load(fpath, map_location='cpu'):
         model (nn.Module): Model that inherits `_BaseModel`.
     """
     if not isinstance(fpath, str):
+        print('not string')
         return _deserialize(fpath)
     if map_location is not None:
         map_location = torch.device(map_location)
