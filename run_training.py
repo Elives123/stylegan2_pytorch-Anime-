@@ -720,6 +720,7 @@ def get_trainer(args):
             **vars(args),
             checkpoint_path=args.checkpoint_dir,
             dataset=dataset,
+            device=args.gpu,
         )
     else:
         G, D = get_models(args)
