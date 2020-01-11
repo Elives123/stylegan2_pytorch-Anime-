@@ -905,7 +905,7 @@ class Trainer:
         if 'Gs' in weights:
             loaded_kwargs['Gs'] = models.load(
                 weights['Gs'],
-                map_location=device if loaded_kwargs['Gs_device'] is None \
+                map_location=device if 'Gs_device' not in loaded_kwargs and loaded_kwargs['Gs_device'] is None \
                     else loaded_kwargs['Gs_device']
             )
         obj = cls(dataset=dataset, **loaded_kwargs)
