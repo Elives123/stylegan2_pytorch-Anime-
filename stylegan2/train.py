@@ -528,20 +528,22 @@ class Trainer:
                     # is why G regularization has its own settings
                     # for subdivisions and batch size.
                     for _ in range(self.G_reg_subdivisions):
-                        latents, latent_labels = self.prior_generator(
-                            batch_size=self.G_reg_device_batch_size,
-                            multi_latent_prob=self.style_mix_prob
-                        )
-                        _, reg_loss = self.G_reg(
-                            G=self.G,
-                            latents=latents,
-                            latent_labels=latent_labels
-                        )
-                        G_reg_loss += self._backward(
-                            reg_loss,
-                            self.G_opt, mul=self.G_reg_interval or 1,
-                            subdivisions=self.G_reg_subdivisions
-                        )
+                        with torch.autograd.profiler.profile() as prof:
+                            latents, latent_labels = self.prior_generator(
+                                batch_size=self.G_reg_device_batch_size,
+                                multi_latent_prob=self.style_mix_prob
+                            )
+                            _, reg_loss = self.G_reg(
+                                G=self.G,
+                                latents=latents,
+                                latent_labels=latent_labels
+                            )
+                            G_reg_loss += self._backward(
+                                reg_loss,
+                                self.G_opt, mul=self.G_reg_interval or 1,
+                                subdivisions=self.G_reg_subdivisions
+                            )
+                            print(prof.key_averages().table(sort_by="self_cpu_time_total"))
                 self._sync_distributed(G=self.G)
                 self.G_opt.step()
                 # Update moving average of weights after
