@@ -896,6 +896,7 @@ class Trainer:
         if isinstance(kwargs['device'], list):
             device = 'cuda:0'
         weights = torch.load(checkpoint_path, map_location=torch.device(device))
+        loaded_kwargs = kwargs
         if 'kwargs' in weights:
             loaded_kwargs = weights['kwargs']
             loaded_kwargs.update(**kwargs)

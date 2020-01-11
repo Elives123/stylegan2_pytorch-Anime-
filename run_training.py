@@ -727,6 +727,7 @@ def get_trainer(args):
             tensorboard_log_dir=args.tensorboard_log_dir,
             checkpoint_dir=args.checkpoint_dir,
             checkpoint_interval=args.checkpoint_interval,
+            **args,
         )
     else:
         G, D = get_models(args)
