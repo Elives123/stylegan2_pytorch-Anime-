@@ -879,8 +879,7 @@ class Trainer:
         if os.path.exists(os.path.join(checkpoint_path, 'Gs.pth')):
             loaded_kwargs['Gs'] = models.load(
                 os.path.join(checkpoint_path, 'Gs.pth'),
-                map_location=device if loaded_kwargs['Gs_device'] is None \
-                    else loaded_kwargs['Gs_device']
+                map_location=device
             )
         obj = cls(dataset=dataset, **loaded_kwargs)
         for name in ['G_opt', 'D_opt']:
