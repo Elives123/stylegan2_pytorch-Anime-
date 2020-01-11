@@ -720,14 +720,6 @@ def get_trainer(args):
             **vars(args),
             checkpoint_path=args.checkpoint_dir,
             dataset=dataset,
-            device=args.gpu,
-            rank=args.rank,
-            world_size=args.world_size,
-            master_addr=args.master_addr,
-            master_port=args.master_port,
-            tensorboard_log_dir=args.tensorboard_log_dir,
-            checkpoint_dir=args.checkpoint_dir,
-            checkpoint_interval=args.checkpoint_interval,
         )
     else:
         G, D = get_models(args)
