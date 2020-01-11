@@ -677,9 +677,9 @@ class Trainer:
                         if wandb.run is not None:
                             print(wandb.save(checkpoint_path))
 
-        print(prof.key_averages().table(sort_by="self_cpu_time_total"))
-        if verbose:
-            progress.close()
+            print(prof.key_averages().table(sort_by="self_cpu_time_total"))
+            if verbose:
+                progress.close()
 
     def register_metric(self, name, eval_fn, interval):
         """
