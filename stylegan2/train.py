@@ -196,14 +196,15 @@ class Trainer:
                  rank=None,
                  world_size=None,
                  master_addr='127.0.0.1',
-                 master_port='23456'):
+                 master_port='23456',
+                 **kwargs):
         assert not isinstance(G, nn.parallel.DistributedDataParallel) and \
                not isinstance(D, nn.parallel.DistributedDataParallel), \
                'Encountered a model wrapped in `DistributedDataParallel`. ' + \
                'Distributed parallelism is handled by this class and can ' + \
                'not be initialized before.'
         # We store the training settings in a dict that can be saved as a json file.
-        kwargs = locals()
+        kwargs = {k:v for k,v in locals().items() if k not in kwargs}
         # First we remove the arguments that can not be turned into json.
         kwargs.pop('self')
         kwargs.pop('G')
@@ -832,10 +833,6 @@ class Trainer:
 
     @classmethod
     def load_checkpoint(cls, checkpoint_path, dataset, **kwargs):
-        # clean up kwargs
-        print(kwargs)
-        kwargs.pop('_configs')
-
         if wandb.run is not None:
             run = wandb.run
             run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
