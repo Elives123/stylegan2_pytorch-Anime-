@@ -896,8 +896,9 @@ class Trainer:
         if isinstance(kwargs['device'], list):
             device = 'cuda:0'
         weights = torch.load(checkpoint_path, map_location=torch.device(device))
-        loaded_kwargs = weights['kwargs']
-        loaded_kwargs.update(**kwargs)
+        if 'kwargs' in weights:
+            loaded_kwargs = weights['kwargs']
+            loaded_kwargs.update(**kwargs)
         for name in ['G', 'D']:
             loaded_kwargs[name] = models.load(weights[name], map_location=device)
         if 'Gs' in weights:
@@ -908,7 +909,8 @@ class Trainer:
             )
         obj = cls(dataset=dataset, **loaded_kwargs)
         for name in ['G_opt', 'D_opt']:
-            getattr(obj, name).load_state_dict(weights[name])
+            if name in weights:
+                getattr(obj, name).load_state_dict(weights[name])
         return obj
 
 
