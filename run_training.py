@@ -722,10 +722,7 @@ def get_trainer(args):
             dataset=dataset,
             latent_size=args.latent,
             device=args.gpu,
-            batch_size=args.batch_size,
-            device_batch_size=args.device_batch_size,
             label_size=args.label,
-            data_workers=args.data_workers,
             G_loss=args.g_loss,
             D_loss=args.d_loss,
             G_reg=args.g_reg,
@@ -739,14 +736,6 @@ def get_trainer(args):
             style_mix_prob=args.style_mix,
             G_iter=args.g_iter,
             D_iter=args.d_iter,
-            tensorboard_log_dir=args.tensorboard_log_dir,
-            checkpoint_dir=args.checkpoint_dir,
-            checkpoint_interval=args.checkpoint_interval,
-            half=args.half,
-            rank=args.rank,
-            world_size=args.world_size,
-            master_addr=args.master_addr,
-            master_port=args.master_port,
         )
     else:
         G, D = get_models(args)
