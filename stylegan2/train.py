@@ -832,6 +832,10 @@ class Trainer:
 
     @classmethod
     def load_checkpoint(cls, checkpoint_path, dataset, **kwargs):
+        # clean up kwargs
+        print(kwargs)
+        kwargs.pop('_configs')
+
         if wandb.run is not None:
             run = wandb.run
             run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
