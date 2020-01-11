@@ -721,6 +721,11 @@ def get_trainer(args):
             checkpoint_path=args.checkpoint_dir,
             dataset=dataset,
             device=args.gpu,
+            latent_size=args.latent,
+            label_size=args.label,
+            G_opt_kwargs={'lr': args.g_lr, 'betas': args.g_betas},
+            D_opt_kwargs={'lr': args.d_lr, 'betas': args.d_betas},
+            style_mix_prob=args.style_mix,
         )
     else:
         G, D = get_models(args)
