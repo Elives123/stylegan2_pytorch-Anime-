@@ -479,56 +479,56 @@ class Trainer:
             verbose (bool): Write progress to stdout.
                 Default value is True.
         """
-        evaluated_metrics = {}
-        if self.rank:
-            verbose=False
-        if verbose:
-            progress = utils.ProgressWriter(iterations)
-            value_tracker = utils.ValueTracker()
-        for _ in range(iterations):
-            # Figure out if G and/or D be
-            # regularized this iteration
-            G_reg = self.G_reg is not None
-            if self.G_reg_interval and G_reg:
-                G_reg = self.seen % self.G_reg_interval == 0
-            D_reg = self.D_reg is not None
-            if self.D_reg_interval and D_reg:
-                D_reg = self.seen % self.D_reg_interval == 0
+        with torch.autograd.profiler.profile() as prof:
+            evaluated_metrics = {}
+            if self.rank:
+                verbose=False
+            if verbose:
+                progress = utils.ProgressWriter(iterations)
+                value_tracker = utils.ValueTracker()
+            for _ in range(iterations):
+                # Figure out if G and/or D be
+                # regularized this iteration
+                G_reg = self.G_reg is not None
+                if self.G_reg_interval and G_reg:
+                    G_reg = self.seen % self.G_reg_interval == 0
+                D_reg = self.D_reg is not None
+                if self.D_reg_interval and D_reg:
+                    D_reg = self.seen % self.D_reg_interval == 0
 
-            # -----| Train G |----- #
+                # -----| Train G |----- #
 
-            # Disable gradients for D while training G
-            self.D.requires_grad_(False)
+                # Disable gradients for D while training G
+                self.D.requires_grad_(False)
 
-            for _ in range(self.G_iter):
-                self.G_opt.zero_grad()
+                for _ in range(self.G_iter):
+                    self.G_opt.zero_grad()
 
-                G_loss = 0
-                for _ in range(self.subdivisions):
-                    latents, latent_labels = self.prior_generator(
-                        multi_latent_prob=self.style_mix_prob)
-                    loss, _ = self.G_loss(
-                        G=self.G,
-                        D=self.D,
-                        latents=latents,
-                        latent_labels=latent_labels
-                    )
-                    G_loss += self._backward(loss, self.G_opt)
+                    G_loss = 0
+                    for _ in range(self.subdivisions):
+                        latents, latent_labels = self.prior_generator(
+                            multi_latent_prob=self.style_mix_prob)
+                        loss, _ = self.G_loss(
+                            G=self.G,
+                            D=self.D,
+                            latents=latents,
+                            latent_labels=latent_labels
+                        )
+                        G_loss += self._backward(loss, self.G_opt)
 
-                if G_reg:
-                    if self.G_reg_interval:
-                        # For lazy regularization, even if the interval
-                        # is set to 1, the optimization step is taken
-                        # before the gradients of the regularization is gathered.
-                        self._sync_distributed(G=self.G)
-                        self.G_opt.step()
-                        self.G_opt.zero_grad()
-                    G_reg_loss = 0
-                    # Pathreg is expensive to compute which
-                    # is why G regularization has its own settings
-                    # for subdivisions and batch size.
-                    for _ in range(self.G_reg_subdivisions):
-                        with torch.autograd.profiler.profile() as prof:
+                    if G_reg:
+                        if self.G_reg_interval:
+                            # For lazy regularization, even if the interval
+                            # is set to 1, the optimization step is taken
+                            # before the gradients of the regularization is gathered.
+                            self._sync_distributed(G=self.G)
+                            self.G_opt.step()
+                            self.G_opt.zero_grad()
+                        G_reg_loss = 0
+                        # Pathreg is expensive to compute which
+                        # is why G regularization has its own settings
+                        # for subdivisions and batch size.
+                        for _ in range(self.G_reg_subdivisions):
                             latents, latent_labels = self.prior_generator(
                                 batch_size=self.G_reg_device_batch_size,
                                 multi_latent_prob=self.style_mix_prob
@@ -543,55 +543,30 @@ class Trainer:
                                 self.G_opt, mul=self.G_reg_interval or 1,
                                 subdivisions=self.G_reg_subdivisions
                             )
-                            print(prof.key_averages().table(sort_by="self_cpu_time_total"))
-                self._sync_distributed(G=self.G)
-                self.G_opt.step()
-                # Update moving average of weights after
-                # each G training subiteration
-                if self.Gs is not None:
-                    self.Gs.update()
+                    self._sync_distributed(G=self.G)
+                    self.G_opt.step()
+                    # Update moving average of weights after
+                    # each G training subiteration
+                    if self.Gs is not None:
+                        self.Gs.update()
 
-            # Re-enable gradients for D
-            self.D.requires_grad_(True)
+                # Re-enable gradients for D
+                self.D.requires_grad_(True)
 
-            # -----| Train D |----- #
+                # -----| Train D |----- #
 
-            # Disable gradients for G while training D
-            self.G.requires_grad_(False)
+                # Disable gradients for G while training D
+                self.G.requires_grad_(False)
 
-            for _ in range(self.D_iter):
-                self.D_opt.zero_grad()
+                for _ in range(self.D_iter):
+                    self.D_opt.zero_grad()
 
-                D_loss = 0
-                for i in range(self.subdivisions):
-                    latents, latent_labels = self.prior_generator(
-                        multi_latent_prob=self.style_mix_prob)
-                    reals, real_labels = self._get_batch()
-                    loss, _ = self.D_loss(
-                        G=self.G,
-                        D=self.D,
-                        latents=latents,
-                        latent_labels=latent_labels,
-                        reals=reals,
-                        real_labels=real_labels
-                    )
-                    D_loss += self._backward(loss, self.D_opt)
-                    D_loss += loss
-
-                if D_reg:
-                    if self.D_reg_interval:
-                        # For lazy regularization, even if the interval
-                        # is set to 1, the optimization step is taken
-                        # before the gradients of the regularization is gathered.
-                        self._sync_distributed(D=self.D)
-                        self.D_opt.step()
-                        self.D_opt.zero_grad()
-                    D_reg_loss = 0
+                    D_loss = 0
                     for i in range(self.subdivisions):
                         latents, latent_labels = self.prior_generator(
                             multi_latent_prob=self.style_mix_prob)
                         reals, real_labels = self._get_batch()
-                        _, reg_loss = self.D_reg(
+                        loss, _ = self.D_loss(
                             G=self.G,
                             D=self.D,
                             latents=latents,
@@ -599,87 +574,112 @@ class Trainer:
                             reals=reals,
                             real_labels=real_labels
                         )
-                        D_reg_loss += self._backward(
-                            reg_loss, self.D_opt, mul=self.D_reg_interval or 1)
-                self._sync_distributed(D=self.D)
-                self.D_opt.step()
+                        D_loss += self._backward(loss, self.D_opt)
+                        D_loss += loss
 
-            # Re-enable grads for G
-            self.G.requires_grad_(True)
+                    if D_reg:
+                        if self.D_reg_interval:
+                            # For lazy regularization, even if the interval
+                            # is set to 1, the optimization step is taken
+                            # before the gradients of the regularization is gathered.
+                            self._sync_distributed(D=self.D)
+                            self.D_opt.step()
+                            self.D_opt.zero_grad()
+                        D_reg_loss = 0
+                        for i in range(self.subdivisions):
+                            latents, latent_labels = self.prior_generator(
+                                multi_latent_prob=self.style_mix_prob)
+                            reals, real_labels = self._get_batch()
+                            _, reg_loss = self.D_reg(
+                                G=self.G,
+                                D=self.D,
+                                latents=latents,
+                                latent_labels=latent_labels,
+                                reals=reals,
+                                real_labels=real_labels
+                            )
+                            D_reg_loss += self._backward(
+                                reg_loss, self.D_opt, mul=self.D_reg_interval or 1)
+                    self._sync_distributed(D=self.D)
+                    self.D_opt.step()
 
-            if self.tb_writer is not None or verbose:
-                # In case verbose is true and tensorboard logging enabled
-                # we calculate grad norm here to only do it once as well
-                # as making sure we do it before any metrics that may
-                # possibly zero the grads.
-                G_grad_norm = utils.get_grad_norm_from_optimizer(self.G_opt)
-                D_grad_norm = utils.get_grad_norm_from_optimizer(self.D_opt)
+                # Re-enable grads for G
+                self.G.requires_grad_(True)
 
-            for name, metric in self.metrics.items():
-                if not metric['interval'] or self.seen % metric['interval'] == 0:
-                    evaluated_metrics[name] = metric['eval_fn']()
+                if self.tb_writer is not None or verbose:
+                    # In case verbose is true and tensorboard logging enabled
+                    # we calculate grad norm here to only do it once as well
+                    # as making sure we do it before any metrics that may
+                    # possibly zero the grads.
+                    G_grad_norm = utils.get_grad_norm_from_optimizer(self.G_opt)
+                    D_grad_norm = utils.get_grad_norm_from_optimizer(self.D_opt)
 
-            # Printing and logging
+                for name, metric in self.metrics.items():
+                    if not metric['interval'] or self.seen % metric['interval'] == 0:
+                        evaluated_metrics[name] = metric['eval_fn']()
 
-            # Tensorboard logging
-            if self.tb_writer is not None:
-                self.tb_writer.add_scalar('Loss/G_loss', G_loss, self.seen)
-                self.tb_writer.add_scalar('Params/G_lr', self.G_opt.param_groups[0]['lr'])
-                if G_reg:
-                    self.tb_writer.add_scalar('Loss/G_reg', G_reg_loss, self.seen)
-                    self.tb_writer.add_scalar('Grad_norm/G_reg', G_grad_norm, self.seen)
-                    self.tb_writer.add_scalar('Params/pl_avg', self.pl_avg, self.seen)
-                else:
-                    self.tb_writer.add_scalar('Grad_norm/G_loss', G_grad_norm, self.seen)
-                self.tb_writer.add_scalar('Loss/D_loss', D_loss, self.seen)
-                self.tb_writer.add_scalar('Params/D_lr', self.D_opt.param_groups[0]['lr'])
-                if D_reg:
-                    self.tb_writer.add_scalar('Loss/D_reg', D_reg_loss, self.seen)
-                    self.tb_writer.add_scalar('Grad_norm/D_reg', D_grad_norm, self.seen)
-                else:
-                    self.tb_writer.add_scalar('Grad_norm/D_loss', D_grad_norm, self.seen)
-                for name, value in evaluated_metrics.items():
-                    self.tb_writer.add_scalar('Metrics/{}'.format(name), value, self.seen)
+                # Printing and logging
 
-            # Printing
+                # Tensorboard logging
+                if self.tb_writer is not None:
+                    self.tb_writer.add_scalar('Loss/G_loss', G_loss, self.seen)
+                    self.tb_writer.add_scalar('Params/G_lr', self.G_opt.param_groups[0]['lr'])
+                    if G_reg:
+                        self.tb_writer.add_scalar('Loss/G_reg', G_reg_loss, self.seen)
+                        self.tb_writer.add_scalar('Grad_norm/G_reg', G_grad_norm, self.seen)
+                        self.tb_writer.add_scalar('Params/pl_avg', self.pl_avg, self.seen)
+                    else:
+                        self.tb_writer.add_scalar('Grad_norm/G_loss', G_grad_norm, self.seen)
+                    self.tb_writer.add_scalar('Loss/D_loss', D_loss, self.seen)
+                    self.tb_writer.add_scalar('Params/D_lr', self.D_opt.param_groups[0]['lr'])
+                    if D_reg:
+                        self.tb_writer.add_scalar('Loss/D_reg', D_reg_loss, self.seen)
+                        self.tb_writer.add_scalar('Grad_norm/D_reg', D_grad_norm, self.seen)
+                    else:
+                        self.tb_writer.add_scalar('Grad_norm/D_loss', D_grad_norm, self.seen)
+                    for name, value in evaluated_metrics.items():
+                        self.tb_writer.add_scalar('Metrics/{}'.format(name), value, self.seen)
+
+                # Printing
+                if verbose:
+                    value_tracker.add('seen', self.seen + 1, beta=0)
+                    value_tracker.add('G_lr', self.G_opt.param_groups[0]['lr'], beta=0)
+                    value_tracker.add('G_loss', G_loss)
+                    if G_reg:
+                        value_tracker.add('G_reg', G_reg_loss)
+                        value_tracker.add('G_reg_grad_norm', G_grad_norm)
+                        value_tracker.add('pl_avg', self.pl_avg, beta=0)
+                    else:
+                        value_tracker.add('G_loss_grad_norm', G_grad_norm)
+                    value_tracker.add('D_lr', self.D_opt.param_groups[0]['lr'], beta=0)
+                    value_tracker.add('D_loss', D_loss)
+                    if D_reg:
+                        value_tracker.add('D_reg', D_reg_loss)
+                        value_tracker.add('D_reg_grad_norm', D_grad_norm)
+                    else:
+                        value_tracker.add('D_loss_grad_norm', D_grad_norm)
+                    for name, value in evaluated_metrics.items():
+                        value_tracker.add(name, value, beta=0)
+                    # progress.write(str(value_tracker))
+                    progress.update(value_tracker.values)
+
+                # Callback
+                for callback in utils.to_list(callbacks) + self.callbacks:
+                    callback(self.seen)
+
+                self.seen += 1
+
+                # Handle checkpointing
+                if not self.rank and self.checkpoint_dir and self.checkpoint_interval:
+                    if self.seen % self.checkpoint_interval == 0:
+                        checkpoint_path = os.path.join(self.checkpoint_dir, f'{str(self.seen).zfill(8)}.pth')
+                        self.save_checkpoint(checkpoint_path)
+                        if wandb.run is not None:
+                            print(wandb.save(checkpoint_path))
+
+            print(prof.key_averages().table(sort_by="self_cpu_time_total"))
             if verbose:
-                value_tracker.add('seen', self.seen + 1, beta=0)
-                value_tracker.add('G_lr', self.G_opt.param_groups[0]['lr'], beta=0)
-                value_tracker.add('G_loss', G_loss)
-                if G_reg:
-                    value_tracker.add('G_reg', G_reg_loss)
-                    value_tracker.add('G_reg_grad_norm', G_grad_norm)
-                    value_tracker.add('pl_avg', self.pl_avg, beta=0)
-                else:
-                    value_tracker.add('G_loss_grad_norm', G_grad_norm)
-                value_tracker.add('D_lr', self.D_opt.param_groups[0]['lr'], beta=0)
-                value_tracker.add('D_loss', D_loss)
-                if D_reg:
-                    value_tracker.add('D_reg', D_reg_loss)
-                    value_tracker.add('D_reg_grad_norm', D_grad_norm)
-                else:
-                    value_tracker.add('D_loss_grad_norm', D_grad_norm)
-                for name, value in evaluated_metrics.items():
-                    value_tracker.add(name, value, beta=0)
-                # progress.write(str(value_tracker))
-                progress.update(value_tracker.values)
-
-            # Callback
-            for callback in utils.to_list(callbacks) + self.callbacks:
-                callback(self.seen)
-
-            self.seen += 1
-
-            # Handle checkpointing
-            if not self.rank and self.checkpoint_dir and self.checkpoint_interval:
-                if self.seen % self.checkpoint_interval == 0:
-                    checkpoint_path = os.path.join(self.checkpoint_dir, f'{str(self.seen).zfill(8)}.pth')
-                    self.save_checkpoint(checkpoint_path)
-                    if wandb.run is not None:
-                        print(wandb.save(checkpoint_path))
-
-        if verbose:
-            progress.close()
+                progress.close()
 
     def register_metric(self, name, eval_fn, interval):
         """
