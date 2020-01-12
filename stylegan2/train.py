@@ -671,6 +671,10 @@ class Trainer:
             # Handle checkpointing
             if not self.rank and self.checkpoint_dir and self.checkpoint_interval:
                 if self.seen % self.checkpoint_interval == 0:
+                    # remove previous file
+                    previous_file = os.path.join(self.checkpoint_dir, f'{str(self.seen - self.checkpoint_interval).zfill(8)}.pth')
+                    if os.path.isfile(previous_file):
+                        os.unlink(previous_file)
                     checkpoint_path = os.path.join(self.checkpoint_dir, f'{str(self.seen).zfill(8)}.pth')
                     self.save_checkpoint(checkpoint_path)
                     if wandb.run is not None:
