@@ -696,7 +696,7 @@ def get_models(args):
         **common_kwargs
     )
 
-    G = stylegan2.models.Generator(G_mapping=G_M, G_synthesis=G_S, dlatent_avg_beta=0.98)
+    G = stylegan2.models.Generator(G_mapping=G_M, G_synthesis=G_S)
 
     D = stylegan2.models.Discriminator(
         label_size=args.label,
