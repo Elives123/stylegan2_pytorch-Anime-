@@ -823,7 +823,7 @@ class Trainer:
             }
 
             if self.Gs is not None:
-                checkpoint['Gs'] = utils.unwrap_module(self.G)._serialize(half=False)
+                checkpoint['Gs'] = utils.unwrap_module(self.Gs)._serialize(half=False)
             torch.save(checkpoint, path)
         else:
             with open(os.path.join(dir_path, 'kwargs.json'), 'w') as fp:
