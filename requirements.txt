@@ -2,3 +2,5 @@ runway-python
 torch
 torchvision
 pillow==6.2.1
+lmdb
+wandb
