@@ -734,7 +734,7 @@ def stack_images_PIL(imgs, shape=None, individual_img_size=None):
 # wandb utils
 
 
-def locate_latest_pt(path):
+def locate_latest_pt(path, name=None):
     api = wandb.Api()
     runs = api.runs(path, order='created_at')
     filename = None
@@ -744,6 +744,8 @@ def locate_latest_pt(path):
         files = run.files()
         count = 0
         for file in files:
+            if name is not None and file.name == name:
+                return '/'.join(run.path), file.name
             if '.pth' in file.name:
                 ckpt_count = None
                 if '_' in file.name:

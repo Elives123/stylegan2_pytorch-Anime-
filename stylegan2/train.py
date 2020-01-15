@@ -6,11 +6,11 @@ import sys
 import json
 import numpy as np
 import torch
-import torch.utils.tensorboard
 from torch import nn
 import torchvision
 
 try:
+    import torch.utils.tensorboard
     import wandb
     import apex
     from apex import amp
@@ -836,10 +836,10 @@ class Trainer:
                 models.save(self.Gs, os.path.join(dir_path, 'Gs.pth'))
 
     @classmethod
-    def load_checkpoint(cls, checkpoint_path, dataset, **kwargs):
+    def load_checkpoint(cls, checkpoint_path, dataset, checkpoint_name=None, **kwargs):
         if wandb.run is not None:
             run = wandb.run
-            run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}')
+            run_path, filename = utils.locate_latest_pt(f'{run.entity}/{run.project}', checkpoint_name)
             if '_' not in filename:
                 print(f'Downloading {filename}')
                 result = wandb.restore(filename, run_path=run_path)

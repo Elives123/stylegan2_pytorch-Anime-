@@ -1,7 +1,8 @@
 import numpy as np
 import runway
 import torch
-import stylegan2.models
+
+from stylegan2 import utils, models
 
 np.random.seed(0)
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -9,10 +10,11 @@ device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 @runway.setup(options={'checkpoint': runway.file(extension='.pth')})
 def setup(opts):
     global Gs
+    if opts['checkpoint'] is None:
+      opts['checkpoint'] = '00006000.pth'
     state = torch.load(opts['checkpoint'], map_location=device)
-    Gs = stylegan2.models.load(state['Gs'], device)
+    Gs = models.load(state['Gs'], device)
     Gs.to(device)
-    Gs.fixed_noise()
     return Gs
 
 
@@ -25,11 +27,12 @@ generate_inputs = {
 def convert(model, inputs):
     z = inputs['z']
     truncation = inputs['truncation']
-    latents = z.reshape((1, 512))
+    latents = torch.from_numpy(z.reshape((1, 512))).to(device=device, dtype=torch.float32)
     Gs.set_truncation(truncation_psi=truncation)
-    images = Gs(latents)
-    output = np.clip(images[0], 0, 255).astype(np.uint8)
-    return {'image': output}
+    generated = Gs(latents=latents)
+    images = utils.tensor_to_PIL(generated)
+    # print(images.shape)
+    return {'image': images[0]}
 
 
 if __name__ == '__main__':

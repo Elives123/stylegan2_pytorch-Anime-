@@ -592,6 +592,13 @@ def get_arg_parser():
     )
 
     parser.add_argument(
+        '--checkpoint_name',
+        help='Force to use this checkpoint',
+        default=None,
+        type=str
+    )
+
+    parser.add_argument(
         '--checkpoint_interval',
         help='Save checkpoints with this interval. Default: 10000',
         default=10000,
@@ -719,6 +726,7 @@ def get_trainer(args):
         trainer = stylegan2.train.Trainer.load_checkpoint(
             **vars(args),
             checkpoint_path=args.checkpoint_dir,
+            checkpoint_name=args.checkpoint_name,
             dataset=dataset,
             latent_size=args.latent,
             device=args.gpu,
