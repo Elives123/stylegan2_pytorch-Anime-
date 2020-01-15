@@ -4,7 +4,6 @@ import torch
 import stylegan2.models
 
 np.random.seed(0)
-tf.random.set_random_seed(0)
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 @runway.setup(options={'checkpoint': runway.file(extension='.pkl')})
