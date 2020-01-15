@@ -12,13 +12,13 @@ from torch import nn
 import torchvision
 from io import BytesIO
 
-import lmdb
-import wandb
 from PIL import Image
 from torch.utils.data import Dataset
 
 try:
     import tqdm
+    import lmdb
+    import wandb
 except ImportError:
     pass
 try:

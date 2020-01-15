@@ -2,5 +2,4 @@ runway-python
 torch
 torchvision
 pillow==6.2.1
-lmdb
-wandb
+tensorboard==1.14.0
