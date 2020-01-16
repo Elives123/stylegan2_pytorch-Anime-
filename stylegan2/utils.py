@@ -744,8 +744,10 @@ def locate_latest_pt(path, name=None):
         files = run.files()
         count = 0
         for file in files:
-            if name is not None and file.name == name:
-                return '/'.join(run.path), file.name
+            if name is not None:
+                if file.name == name:
+                    return '/'.join(run.path), file.name
+                continue
             if '.pth' in file.name:
                 ckpt_count = None
                 if '_' in file.name:
