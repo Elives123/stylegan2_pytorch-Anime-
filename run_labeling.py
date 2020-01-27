@@ -200,7 +200,7 @@ def run_labeling(G, C, tags, args):
             images = generated.clamp_(min=0, max=1)
             # 299 is the input size of the model
             images = F.interpolate(images, size=(299, 299), mode='bilinear')
-            predicted_labels = C.eval(images[0].numpy()).reshape(tags.shape[0])  # array of tag score
+            predicted_labels = C.eval(images[0].cpu().numpy()).reshape(tags.shape[0])  # array of tag score
             # transform labels to dict
             labels = transform_labels(tags, predicted_labels)
             # [image] = utils.tensor_to_PIL(generated, pixel_min=args.pixel_min, pixel_max=args.pixel_max)
