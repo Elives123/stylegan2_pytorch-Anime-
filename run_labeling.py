@@ -4,7 +4,7 @@ import os
 from PIL import Image
 import numpy as np
 import torch
-import cntk
+import onnxruntime
 import torch.nn.functional as F
 import pickle
 
@@ -105,6 +105,14 @@ def get_arg_parser():
     )
 
     parser.add_argument(
+        '--batch_size',
+        help='Batch size for generator. Default: %(default)s',
+        type=int,
+        default=1,
+        metavar='VALUE'
+    )
+
+    parser.add_argument(
         '--gpu',
         help='CUDA device indices (given as separate ' + \
             'values if multiple, i.e. "--gpu 0 1"). Default: Use CPU',
@@ -143,12 +151,15 @@ def get_arg_parser():
 #----------------------------------------------------------------------------
 
 def transform_labels(tags, predicted):
-    result = {}
-    for i in range(len(tags)):
-        tag = tags[i]
-        if tag in whitelist:
-            result[tag] = predicted[i]
-    return result
+    results = []
+    for current in predicted:
+        result = {}
+        for i in range(len(tags)):
+            tag = tags[i]
+            if tag in whitelist:
+                result[tag] = current[i]
+        results.append(result)
+    return results
 
 def run_labeling(G, C, tags, args):
     threshold = 0.5
@@ -188,34 +199,33 @@ def run_labeling(G, C, tags, args):
     progress = utils.ProgressWriter(args.iter)
     progress.write('Generating images...', step=False)
 
-    qlatents = []
-    dlatents = []
+    qlatents_data = []
+    dlatents_data = []
     labels_data = []
     for i in range(0, args.iter):
-        qlatent = torch.from_numpy(rnd.randn(latent_size)).reshape(1, latent_size).to(device=device, dtype=torch.float32)
+        qlatents = torch.from_numpy(rnd.randn(args.batch_size, latent_size)).to(device=device, dtype=torch.float32)
         with torch.no_grad():
-            dlatent = G.G_mapping(latents=qlatent)
-            dlatent = dlatent.unsqueeze(1).repeat(1, len(G.G_synthesis), 1)
-            generated = G.G_synthesis(dlatent)
+            generated, dlatents = G(latents=qlatents, return_dlatents=True)
             images = generated.clamp_(min=0, max=1)
             # 299 is the input size of the model
             images = F.interpolate(images, size=(299, 299), mode='bilinear')
-            predicted_labels = C.eval(images[0].cpu().numpy()).reshape(tags.shape[0])  # array of tag score
+            ort_inputs = {C.get_inputs()[0].name: images.cpu().numpy()}
+            predicted_labels = C.run(None, ort_inputs)
             # transform labels to dict
-            labels = transform_labels(tags, predicted_labels)
+            labels = transform_labels(tags, predicted_labels[0])
             # [image] = utils.tensor_to_PIL(generated, pixel_min=args.pixel_min, pixel_max=args.pixel_max)
             # image.save(os.path.join(args.output, 'seed%05d-resized.png' % i))
 
             # store the result
-            qlatents.append(qlatent)
-            dlatents.append(dlatent)
-            labels_data.append(labels)
+            qlatents_data = qlatents_data + qlatents.detach().cpu().numpy().tolist()
+            dlatents_data = dlatents_data + dlatents.detach().cpu().numpy().tolist()
+            labels_data = labels_data + labels
 
             progress.step()
 
     out_path = os.path.join(args.output, 'result.pkl')
     with open(out_path, 'wb') as f:
-      pickle.dump((qlatent, dlatents, labels_data), f)
+      pickle.dump((qlatents_data, dlatents_data, labels_data), f)
 
     progress.write('Done!', step=False)
     progress.close()
@@ -234,13 +244,13 @@ def main():
         'stylegan2.models.Generator. Found {}.'.format(type(G))
 
     tags_path = os.path.join(args.label_project, 'tags.txt')
-    model_path = os.path.join(args.label_project, 'model.cntk')
+    model_path = os.path.join(args.label_project, 'model.onnx')
 
     with open(tags_path, 'r') as tags_stream:
         tag_array = np.array([tag for tag in (tag.strip()
                                               for tag in tags_stream) if tag])
 
-    C = cntk.load_model(model_path)
+    C = onnxruntime.InferenceSession(model_path)
     
     run_labeling(G, C, tag_array, args)
 
