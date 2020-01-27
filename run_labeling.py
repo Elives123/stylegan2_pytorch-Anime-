@@ -5,6 +5,8 @@ from PIL import Image
 import numpy as np
 import torch
 import cntk
+import torch.nn.functional as F
+import pickle
 
 import stylegan2
 from stylegan2 import utils
@@ -36,6 +38,22 @@ _examples = """examples:
   # Generate style mixing example (matches style mixing video clip)
   python %(prog)s style_mixing_example --network=Gs.pth --row_seeds=85,100,75,458,1500 --col_seeds=55,821,1789,293 --truncation_psi=1.0
 """
+
+#----------------------------------------------------------------------------
+
+## only takes these tags
+colors = ['aqua', 'black', 'blue', 'brown',  'green', 'grey', 'lavender', 'light_brown', 'multicolored', 'orange', 'pink', 'purple', 'red', 'silver', 'white', 'yellow']
+switches = ['open', 'closed', 'covered']
+adjs = ['glowing', 'gradient', 'reflective', 'ringed', 'rolling', 'rubbing', 'shading', 'sparkling']
+
+# generate composition of elements
+whitelist = []
+components = ['eyes', 'hair']
+
+for component in components:
+    whitelist = whitelist + [f'{color}_{component}' for color in colors]
+    whitelist = whitelist + [f'{switch}_{component}' for switch in switches]
+    whitelist = whitelist + [f'{adj}_{component}' for adj in adjs]
 
 #----------------------------------------------------------------------------
 
@@ -124,6 +142,14 @@ def get_arg_parser():
 
 #----------------------------------------------------------------------------
 
+def transform_labels(tags, predicted):
+    result = {}
+    for i in range(len(tags)):
+        tag = tags[i]
+        if tag in whitelist:
+            result[tag] = predicted[i]
+    return result
+
 def run_labeling(G, C, tags, args):
     threshold = 0.5
     latent_size, label_size = G.latent_size, G.label_size
@@ -164,19 +190,32 @@ def run_labeling(G, C, tags, args):
 
     qlatents = []
     dlatents = []
+    labels_data = []
     for i in range(0, args.iter):
         qlatent = torch.from_numpy(rnd.randn(latent_size)).reshape(1, latent_size).to(device=device, dtype=torch.float32)
         with torch.no_grad():
             dlatent = G.G_mapping(latents=qlatent)
             dlatent = dlatent.unsqueeze(1).repeat(1, len(G.G_synthesis), 1)
             generated = G.G_synthesis(dlatent)
-            [image] = utils.tensor_to_PIL(generated, pixel_min=args.pixel_min, pixel_max=args.pixel_max)
-            #image.save(os.path.join(args.output, 'seed%05d.png' % i))
-            results = C.eval(image).reshape(tags.shape[0])  # array of tag score
-            for i in range(len(tags)):
-              if results[i] > threshold:
-                  print('{}: {}'.format(tags[i], results[i]))
+            images = generated.clamp_(min=0, max=1)
+            # 299 is the input size of the model
+            images = F.interpolate(images, size=(299, 299), mode='bilinear')
+            predicted_labels = C.eval(images[0].numpy()).reshape(tags.shape[0])  # array of tag score
+            # transform labels to dict
+            labels = transform_labels(tags, predicted_labels)
+            # [image] = utils.tensor_to_PIL(generated, pixel_min=args.pixel_min, pixel_max=args.pixel_max)
+            # image.save(os.path.join(args.output, 'seed%05d-resized.png' % i))
+
+            # store the result
+            qlatents.append(qlatent)
+            dlatents.append(dlatent)
+            labels_data.append(labels)
+
             progress.step()
+
+    out_path = os.path.join(args.output, 'result.pkl')
+    with open(out_path, 'wb') as f:
+      pickle.dump((qlatent, dlatents, labels_data), f)
 
     progress.write('Done!', step=False)
     progress.close()
