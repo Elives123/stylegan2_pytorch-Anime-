@@ -138,13 +138,6 @@ def get_arg_parser():
         default=True
     )
 
-    parser.add_argument(
-        '--resolution',
-        help='Resolution of the generator model. Default: 1024',
-        type=int,
-        default=1024,
-    )
-
     #----------------------------------------------------------------------------
     # Generator options
 
@@ -291,6 +284,20 @@ def get_arg_parser():
         const=True,
         nargs='?',
         default=True
+    )
+
+    parser.add_argument(
+        '--resolution',
+        help='Resolution of the generator model. Default: 1024',
+        type=int,
+        default=1024,
+    )
+
+    parser.add_argument(
+        '--finetune_loc',
+        help='Finetune loc for generator model. Default: -1',
+        type=int,
+        default=-1,
     )
 
     #----------------------------------------------------------------------------
