@@ -495,6 +495,9 @@ class Trainer:
             progress = utils.ProgressWriter(iterations)
             value_tracker = utils.ValueTracker()
         for _ in range(iterations):
+            # increase seen count
+            self.seen += 1
+
             # Figure out if G and/or D be
             # regularized this iteration
             G_reg = self.G_reg is not None
@@ -664,7 +667,7 @@ class Trainer:
 
             # Printing
             if verbose:
-                value_tracker.add('seen', self.seen + 1, beta=0)
+                value_tracker.add('seen', self.seen, beta=0)
                 value_tracker.add('G_lr', self.G_opt.param_groups[0]['lr'], beta=0)
                 value_tracker.add('G_loss', G_loss)
                 if G_reg:
@@ -688,8 +691,6 @@ class Trainer:
             # Callback
             for callback in utils.to_list(callbacks) + self.callbacks:
                 callback(self.seen)
-
-            self.seen += 1
 
             # Handle checkpointing
             if not self.rank and self.checkpoint_dir and self.checkpoint_interval:
