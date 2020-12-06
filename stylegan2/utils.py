@@ -269,6 +269,9 @@ class LmdbDataset(Dataset):
 
                     if img_bytes is not None:
                         break
+
+                    print(f'no data found for resolution {current_resolution}, trying {current_resolution / 2}')
+                    current_resolution = int(current_resolution / 2)
                 except:
                     print(f'no data found for resolution {current_resolution}, trying {current_resolution / 2}')
                     current_resolution = int(current_resolution / 2)
