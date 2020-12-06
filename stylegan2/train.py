@@ -519,6 +519,7 @@ class Trainer:
                     self.requires_grad(self.G, True, target_layer=f'convs.{num_layers-3-2*loc}')
                     self.requires_grad(self.G, True, target_layer=f'to_rgbs.{log_size-3-loc}')
             else:
+                # Re-enable grads for G
                 self.G.requires_grad_(True)
 
             for _ in range(self.G_iter):
@@ -570,12 +571,13 @@ class Trainer:
                 if self.Gs is not None:
                     self.Gs.update()
 
-            # Re-enable gradients for D
-            self.D.requires_grad_(True)
 
             # -----| Train D |----- #
 
             # Disable gradients for G while training D
+
+            # Re-enable gradients for D
+            self.D.requires_grad_(True)
 
             # Finetune
             if finetune_loc > 0:
@@ -630,9 +632,6 @@ class Trainer:
                             reg_loss, self.D_opt, mul=self.D_reg_interval or 1)
                 self._sync_distributed(D=self.D)
                 self.D_opt.step()
-
-            # Re-enable grads for G
-            self.G.requires_grad_(True)
 
             if self.tb_writer is not None or verbose:
                 # In case verbose is true and tensorboard logging enabled
