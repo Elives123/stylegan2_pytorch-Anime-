@@ -141,7 +141,7 @@ def get_arg_parser():
     parser.add_argument(
         '--resolution',
         help='Resolution of the generator model. Default: 1024',
-        type=float,
+        type=int,
         default=1024,
     )
 
