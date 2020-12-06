@@ -271,7 +271,9 @@ class LmdbDataset(Dataset):
                         break
                 except:
                     print(f'no data found for resolution {current_resolution}, trying {current_resolution / 2}')
-                    current_resolution = current_resolution / 2
+                    current_resolution = int(current_resolution / 2)
+            if current_resolution < 64:
+                raise  FileNotFoundError('no data found that suit for the resolution')
 
         transforms = []
 
