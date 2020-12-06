@@ -515,10 +515,11 @@ class Trainer:
             # -- Finetune
             if finetune_loc > 0:
                 for loc in range(finetune_loc):
-                    self.requires_grad(self.G, False, target_layer=f'convs.{num_layers-2-2*loc}')
-                    self.requires_grad(self.G, False, target_layer=f'convs.{num_layers-3-2*loc}')
-                    self.requires_grad(self.G, False, target_layer=f'to_rgbs.{log_size-3-loc}')
-
+                    self.requires_grad(self.G, True, target_layer=f'convs.{num_layers-2-2*loc}')
+                    self.requires_grad(self.G, True, target_layer=f'convs.{num_layers-3-2*loc}')
+                    self.requires_grad(self.G, True, target_layer=f'to_rgbs.{log_size-3-loc}')
+            else:
+                self.G.requires_grad_(True)
 
             for _ in range(self.G_iter):
                 self.G_opt.zero_grad()
@@ -575,13 +576,15 @@ class Trainer:
             # -----| Train D |----- #
 
             # Disable gradients for G while training D
-            self.G.requires_grad_(False)
 
             # Finetune
-            for loc in range(finetune_loc):
-                self.requires_grad(self.G, True, target_layer=f'convs.{num_layers-2-2*loc}')
-                self.requires_grad(self.G, True, target_layer=f'convs.{num_layers-3-2*loc}')
-                self.requires_grad(self.G, True, target_layer=f'to_rgbs.{log_size-3-loc}')
+            if finetune_loc > 0:
+                for loc in range(finetune_loc):
+                    self.requires_grad(self.G, False, target_layer=f'convs.{num_layers-2-2*loc}')
+                    self.requires_grad(self.G, False, target_layer=f'convs.{num_layers-3-2*loc}')
+                    self.requires_grad(self.G, False, target_layer=f'to_rgbs.{log_size-3-loc}')
+            else:
+                self.G.requires_grad_(False)
 
             for _ in range(self.D_iter):
                 self.D_opt.zero_grad()
