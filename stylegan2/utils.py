@@ -264,7 +264,7 @@ class LmdbDataset(Dataset):
             # locate for one real data
             while current_resolution >= 64:
                 try:
-                    key = f'{current_resolution}-{str(index).zfill(5)}'.encode('utf-8')
+                    key = f'{current_resolution}-{str(1).zfill(5)}'.encode('utf-8')
                     img_bytes = txn.get(key)
 
                     if img_bytes is not None:
