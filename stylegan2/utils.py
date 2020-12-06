@@ -266,6 +266,9 @@ class LmdbDataset(Dataset):
                 try:
                     key = f'{self.resolution}-{str(index).zfill(5)}'.encode('utf-8')
                     img_bytes = txn.get(key)
+
+                    if img_bytes is not None:
+                        break
                 except:
                     print(f'no data found for resolution {current_resolution}, trying {current_resolution / 2}')
                     current_resolution = current_resolution / 2
