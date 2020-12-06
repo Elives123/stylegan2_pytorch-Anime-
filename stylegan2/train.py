@@ -4,6 +4,7 @@ import os
 import time
 import sys
 import json
+import math
 import numpy as np
 import torch
 from torch import nn
@@ -197,6 +198,8 @@ class Trainer:
                  world_size=None,
                  master_addr='127.0.0.1',
                  master_port='23456',
+                 resolution=1024,
+                 finetune_loc=-1,
                  **kwargs):
         assert not isinstance(G, nn.parallel.DistributedDataParallel) and \
                not isinstance(D, nn.parallel.DistributedDataParallel), \
@@ -369,6 +372,8 @@ class Trainer:
         self.seen = seen
         self.metrics = {}
         self.callbacks = []
+        self.resolution = resolution
+        self.finetune_loc = finetune_loc
 
     def _get_batch(self):
         """
@@ -480,6 +485,10 @@ class Trainer:
                 Default value is True.
         """
         evaluated_metrics = {}
+        finetune_loc = self.finetune_loc
+        log_size = int(math.log(self.resolution, 2))
+        num_layers = (log_size - 2) * 2 + 1
+
         if self.rank:
             verbose=False
         if verbose:
@@ -496,9 +505,17 @@ class Trainer:
                 D_reg = self.seen % self.D_reg_interval == 0
 
             # -----| Train G |----- #
-
+            
             # Disable gradients for D while training G
             self.D.requires_grad_(False)
+
+            # -- Finetune
+            if finetune_loc > 0:
+                for loc in range(finetune_loc):
+                    self.requires_grad(self.G, False, target_layer=f'convs.{num_layers-2-2*loc}')
+                    self.requires_grad(self.G, False, target_layer=f'convs.{num_layers-3-2*loc}')
+                    self.requires_grad(self.G, False, target_layer=f'to_rgbs.{log_size-3-loc}')
+
 
             for _ in range(self.G_iter):
                 self.G_opt.zero_grad()
@@ -515,7 +532,8 @@ class Trainer:
                     )
                     G_loss += self._backward(loss, self.G_opt)
 
-                if G_reg:
+                G_reg_loss = 0
+                if G_reg and finetune_loc < 0:
                     if self.G_reg_interval:
                         # For lazy regularization, even if the interval
                         # is set to 1, the optimization step is taken
@@ -523,7 +541,6 @@ class Trainer:
                         self._sync_distributed(G=self.G)
                         self.G_opt.step()
                         self.G_opt.zero_grad()
-                    G_reg_loss = 0
                     # Pathreg is expensive to compute which
                     # is why G regularization has its own settings
                     # for subdivisions and batch size.
@@ -556,6 +573,12 @@ class Trainer:
 
             # Disable gradients for G while training D
             self.G.requires_grad_(False)
+
+            # Finetune
+            for loc in range(finetune_loc):
+                self.requires_grad(self.G, True, target_layer=f'convs.{num_layers-2-2*loc}')
+                self.requires_grad(self.G, True, target_layer=f'convs.{num_layers-3-2*loc}')
+                self.requires_grad(self.G, True, target_layer=f'to_rgbs.{log_size-3-loc}')
 
             for _ in range(self.D_iter):
                 self.D_opt.zero_grad()
@@ -682,6 +705,11 @@ class Trainer:
 
         if verbose:
             progress.close()
+
+    def requires_grad(self, model, flag=True, target_layer=None):
+        for name, p in model.named_parameters():
+            if target_layer is None or target_layer in name:
+                p.requires_grad = flag
 
     def register_metric(self, name, eval_fn, interval):
         """

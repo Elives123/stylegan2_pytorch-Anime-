@@ -138,6 +138,13 @@ def get_arg_parser():
         default=True
     )
 
+    parser.add_argument(
+        '--resolution',
+        help='Resolution of the generator model. Default: 1024',
+        type=float,
+        default=1024,
+    )
+
     #----------------------------------------------------------------------------
     # Generator options
 
@@ -656,7 +663,8 @@ def get_dataset(args):
             args.data_dir,
             mirror=args.mirror_augment,
             pixel_min=args.pixel_min,
-            pixel_max=args.pixel_max
+            pixel_max=args.pixel_max,
+            resolution=args.resolution,
         )
     return dataset
 

@@ -252,7 +252,29 @@ class LmdbDataset(Dataset):
             meminit=False,
         )
 
+        self.resolution = resolution
+
+        if not self.env:
+            raise IOError('Cannot open lmdb dataset', path)
+
+        current_resolution = resolution
+        with self.env.begin(write=False) as txn:
+            self.length = int(
+                txn.get('length'.encode('utf-8')).decode('utf-8'))
+            # locate for one real data
+            while current_resolution > 64:
+                try:
+                    key = f'{self.resolution}-{str(index).zfill(5)}'.encode('utf-8')
+                    img_bytes = txn.get(key)
+                except:
+                    print(f'no data found for resolution {current_resolution}, trying {current_resolution / 2}')
+                    current_resolution = current_resolution / 2
+
         transforms = []
+
+        if current_resolution != self.resolution:
+            transforms.append(torchvision.transforms.Resize(resolution))
+        
         if mirror:
             transforms.append(torchvision.transforms.RandomHorizontalFlip())
         transforms.append(torchvision.transforms.ToTensor())
@@ -263,14 +285,6 @@ class LmdbDataset(Dataset):
             )
         )
         self.transform = torchvision.transforms.Compose(transforms)
-        self.resolution = resolution
-
-        if not self.env:
-            raise IOError('Cannot open lmdb dataset', path)
-
-        with self.env.begin(write=False) as txn:
-            self.length = int(
-                txn.get('length'.encode('utf-8')).decode('utf-8'))
 
     def __len__(self):
         return self.length

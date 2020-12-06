@@ -1047,7 +1047,7 @@ class Discriminator(_BaseAdverserialModel):
         super(Discriminator, self).__init__()
         self._update_default_kwargs(
             label_size=0,
-            mbstd_group_size=4,
+            mbstd_group_size=2,
             dense_hidden=None,
             resnet=True,
             skip=False
