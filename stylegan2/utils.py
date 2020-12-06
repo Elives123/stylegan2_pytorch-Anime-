@@ -262,9 +262,9 @@ class LmdbDataset(Dataset):
             self.length = int(
                 txn.get('length'.encode('utf-8')).decode('utf-8'))
             # locate for one real data
-            while current_resolution > 64:
+            while current_resolution >= 64:
                 try:
-                    key = f'{self.resolution}-{str(index).zfill(5)}'.encode('utf-8')
+                    key = f'{current_resolution}-{str(index).zfill(5)}'.encode('utf-8')
                     img_bytes = txn.get(key)
 
                     if img_bytes is not None:
@@ -273,7 +273,7 @@ class LmdbDataset(Dataset):
                     print(f'no data found for resolution {current_resolution}, trying {current_resolution / 2}')
                     current_resolution = int(current_resolution / 2)
             if current_resolution < 64:
-                raise  FileNotFoundError('no data found that suit for the resolution')
+                raise FileNotFoundError('no data found that suit for the resolution')
 
         transforms = []
 
