@@ -1,5 +1,10 @@
-runway-python
+numpy
+pillow
+pyyaml
+requests
+scipy
+tensorboard
 torch
 torchvision
-pillow==6.2.1
-tensorboard==1.14.0
+tqdm
+runway-python

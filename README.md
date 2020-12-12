@@ -4,6 +4,11 @@ This is an unofficial port of the StyleGAN2 architecture and training procedure 
 
 This model is built to be runnable for 1d, 2d and 3d data.
 
+### Installation
+1. Clone this repository: `git clone https://github.com/Tetratrio/stylegan2_pytorch.git`
+2. (Recommended) Create a virtualenv: `virtualenv .venv && source .venv/bin/activate`
+3. Install requirements: `pip install -r requirements.txt`
+
 ### Using pre-trained networks
 Networks can be converted from their tensorflow version by running `run_convert_from_tf.py`. The networks have to be of type StyleGAN2, the baseline StyleGAN is not supported (config a-d). The network weights can be automatically downloaded if you specify `--download=NAME` where `NAME` is one of the following:
 
@@ -97,7 +102,6 @@ Metrics will be appended to the file `metrics.json` if it exists. Identical metr
 ### Missing features
 + Precision-Recall metric
 + Multi-GPU evaluation of metrics during training
-If you think of any good features that you feel are missing, please open an issue!
 
 ### Code information
 Base functionality is tested but there might be settings that raise exceptions as the repository contains a couple thousand lines of code. If you find one, please open an issue or pull request.

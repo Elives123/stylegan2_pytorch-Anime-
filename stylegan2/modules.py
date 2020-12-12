@@ -28,7 +28,9 @@ def get_activation(activation):
         slope = ''.join(
             char for char in activation if char.isdigit() or char == '.')
         slope = float(slope) if slope else 0.01
-        return nn.LeakyReLU(slope), np.sqrt(2) # close enough to true gain
+        return nn.LeakyReLU(slope), np.sqrt(2)  # close enough to true gain
+    elif activation.startswith('swish'):
+        return Swish(affine=activation != 'swish'), np.sqrt(2)
     elif activation in ['relu']:
         return nn.ReLU(), np.sqrt(2)
     elif activation in ['elu']:
@@ -42,7 +44,7 @@ def get_activation(activation):
     elif activation in ['softplus']:
         return nn.Softplus(), 1
     elif activation in ['softsign']:
-        return nn.Softsign(), 1 # unsure about this gain
+        return nn.Softsign(), 1  # unsure about this gain
     elif activation in ['sigmoid', 'logistic']:
         return nn.Sigmoid(), 1.
     elif activation in ['tanh']:
@@ -51,6 +53,35 @@ def get_activation(activation):
         raise ValueError(
             'Activation "{}" not available.'.format(activation)
         )
+
+
+class Swish(nn.Module):
+    """
+    Performs the 'Swish' non-linear activation function.
+    https://arxiv.org/pdf/1710.05941.pdf
+    Arguments:
+        affine (bool): Multiply the input to sigmoid
+            with a learnable scale. Default value is False.
+    """
+    def __init__(self, affine=False):
+        super(Swish, self).__init__()
+        if affine:
+            self.beta = nn.Parameter(torch.tensor([1.]))
+        self.affine = affine
+
+    def forward(self, input, *args, **kwargs):
+        """
+        Apply the swish non-linear activation function
+        and return the results.
+        Arguments:
+            input (torch.Tensor)
+        Returns:
+            output (torch.Tensor)
+        """
+        x = input
+        if self.affine:
+            x *= self.beta
+        return x * torch.sigmoid(x)
 
 
 def _get_weight_and_coef(shape, lr_mul=1, weight_scale=True, gain=1, fill=None):
@@ -191,7 +222,6 @@ def _get_layer(layer_class, kwargs, wrap=False, noise=False):
             layer = NoiseInjectionWrapper(layer)
         layer = BiasActivationWrapper(layer, **kwargs)
     return layer
-
 
 
 class BiasActivationWrapper(nn.Module):
@@ -397,8 +427,7 @@ class NoiseInjectionWrapper(nn.Module):
         noise_shape[1] = 1
         if self.same_over_batch:
             noise_shape[0] = 1
-        if self.noise_storage is None \
-        or list(self.noise_storage.size()) != noise_shape:
+        if self.noise_storage is None or list(self.noise_storage.size()) != noise_shape:
             if not self._fixed_noise:
                 self.noise_storage = torch.empty(
                     *noise_shape,
@@ -466,7 +495,6 @@ class FilterLayer(nn.Module):
             self.padding = [pad0, pad1] * dim
             self.pad_mode = pad_mode
             self.pad_constant = pad_constant
-
 
     def forward(self, input, **kwargs):
         """
@@ -1159,8 +1187,7 @@ class ConvDownLayer(ConvLayer):
             pad = self.kernel_size - 2
             pad0 = pad // 2
             pad1 = pad - pad0
-            if pad0 == pad1 and \
-            (pad0 == 0 or self.pad_mode == 'constant' and self.pad_constant == 0):
+            if pad0 == pad1 and (pad0 == 0 or self.pad_mode == 'constant' and self.pad_constant == 0):
                 self.fused_pad = True
                 self.padding = pad0
             else:
@@ -1392,7 +1419,7 @@ class GeneratorConvBlock(nn.Module):
             output (torch.Tensor)
         """
         if latents.dim() == 2:
-            latent.unsqueeze(1)
+            latents.unsqueeze(1)
         if latents.size(1) == 1:
             latents = latents.repeat(1, len(self), 1)
         assert latents.size(1) == len(self), \

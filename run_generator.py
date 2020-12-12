@@ -274,6 +274,8 @@ def generate_images(G, args):
     if device.index is not None:
         torch.cuda.set_device(device.index)
     G.to(device)
+    if args.truncation_psi != 1:
+        G.set_truncation(truncation_psi=args.truncation_psi)
     if len(args.gpu) > 1:
         warnings.warn(
             'Noise can not be randomized based on the seed ' + \
@@ -341,6 +343,8 @@ def main():
         os.makedirs(args.output)
 
     G = stylegan2.models.load(args.network)
+    G.eval()
+
     assert isinstance(G, stylegan2.models.Generator), 'Model type has to be ' + \
         'stylegan2.models.Generator. Found {}.'.format(type(G))
 

@@ -9,6 +9,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torch import nn
+from torch.nn import functional as F
 import torchvision
 from io import BytesIO
 
@@ -216,10 +217,64 @@ def range_type(s):
 # Dataset and generation of latents
 
 
+class ResizeTransform:
+
+    def __init__(self, height, width, resize=True, mode='bicubic'):
+        if resize:
+            assert height and width, 'Height and width have to be given ' + \
+                'when resizing data.'
+        self.height = height
+        self.width = width
+        self.resize = resize
+        self.mode = mode
+
+    def __call__(self, tensor):
+        if self.height and self.width:
+            if tensor.size(1) != self.height or tensor.size(2) != self.width:
+                if self.resize:
+                    kwargs = {}
+                    if 'cubic' in self.mode or 'linear' in self.mode:
+                        kwargs.update(align_corners=False)
+                    tensor = F.interpolate(
+                        tensor.unsqueeze(0),
+                        size=(self.height, self.width),
+                        mode=self.mode,
+                        **kwargs
+                    ).squeeze(0)
+                else:
+                    raise ValueError(
+                        'Data shape incorrect, expected ({},{}) '.format(self.width, self.height) + \
+                        'but got ({},{}) (width, height)'.format(tensor.size(2), tensor.size(1))
+                    )
+        return tensor
+
+
+def _PIL_RGB_loader(path):
+    return Image.open(path).convert('RGB')
+
+
+def _PIL_grayscale_loader(path):
+    return Image.open(path).convert('L')
+
+
 class ImageFolder(torchvision.datasets.ImageFolder):
 
-    def __init__(self, *args, mirror=False, pixel_min=-1, pixel_max=1, **kwargs):
-        super(ImageFolder, self).__init__(*args, **kwargs)
+    def __init__(self,
+                 *args,
+                 mirror=False,
+                 pixel_min=-1,
+                 pixel_max=1,
+                 height=None,
+                 width=None,
+                 resize=False,
+                 resize_mode='bicubic',
+                 grayscale=False,
+                 **kwargs):
+        super(ImageFolder, self).__init__(
+            *args,
+            loader=_PIL_grayscale_loader if grayscale else _PIL_RGB_loader,
+            **kwargs
+        )
         transforms = []
         if mirror:
             transforms.append(torchvision.transforms.RandomHorizontalFlip())
@@ -230,6 +285,8 @@ class ImageFolder(torchvision.datasets.ImageFolder):
                 std=[1. / (pixel_max - pixel_min)]
             )
         )
+        transforms.append(ResizeTransform(
+            height=height, width=width, resize=resize, mode=resize_mode))
         self.transform = torchvision.transforms.Compose(transforms)
 
     def _find_classes(self, *args, **kwargs):
@@ -645,7 +702,13 @@ class ProgressWriter:
 
     def close(self):
         if hasattr(self._writer, 'close'):
-            self._writer.close()
+            can_close = True
+            try:
+                can_close = self._writer != sys.stdout and self._writer != sys.stderr
+            except AttributeError:
+                pass
+            if can_close:
+                self._writer.close()
         if hasattr(self._progress_bar, 'close'):
             self._progress_bar.close()
 
