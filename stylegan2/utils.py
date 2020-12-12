@@ -336,9 +336,6 @@ class LmdbDataset(Dataset):
                 raise FileNotFoundError('no data found that suit for the resolution')
 
         transforms = []
-
-        if self.current_resolution != self.resolution:
-            transforms.append(torchvision.transforms.Resize(resolution))
         
         if mirror:
             transforms.append(torchvision.transforms.RandomHorizontalFlip())
@@ -349,6 +346,10 @@ class LmdbDataset(Dataset):
                 std=[1. / (pixel_max - pixel_min)]
             )
         )
+
+        if self.current_resolution != self.resolution:
+            transforms.append(torchvision.transforms.Resize(resolution))
+
         self.transform = torchvision.transforms.Compose(transforms)
 
     def __len__(self):
