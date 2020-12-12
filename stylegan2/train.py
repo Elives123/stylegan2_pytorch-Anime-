@@ -693,8 +693,6 @@ class Trainer:
             # Callback
             for callback in utils.to_list(callbacks) + self.callbacks:
                 callback(self.seen)
-
-            self.seen += 1
             
             # clear cache
             torch.cuda.empty_cache()
